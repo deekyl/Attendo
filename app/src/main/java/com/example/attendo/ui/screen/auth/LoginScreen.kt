@@ -1,23 +1,22 @@
-package com.example.attendo.ui.login
+package com.example.attendo.ui.screen.auth
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.input.TextFieldDecorator
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.*
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
-
 import com.example.attendo.R
 
 @Composable
@@ -32,7 +31,7 @@ fun LoginScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(8.dp),
+            .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -40,9 +39,10 @@ fun LoginScreen(
             painter = painterResource(id = R.drawable.attendo_light),
             contentDescription = "Logo",
             modifier = Modifier
-                .height(160.dp)
-                .padding(bottom = 38.dp)
+                .height(200.dp)
+                .padding(bottom = 28.dp)
         )
+
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
@@ -63,13 +63,18 @@ fun LoginScreen(
             )
         )
 
-
-
         Spacer(modifier = Modifier.height(8.dp))
+
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
             label = { Text("Contraseña") },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Filled.VpnKey,
+                    contentDescription = "Key Icon"
+                )
+            },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
@@ -80,25 +85,31 @@ fun LoginScreen(
                         contentDescription = if (showPassword) "Hide Password" else "Show Password"
                     )
                 }
-            }
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedLabelColor = MaterialTheme.colorScheme.primary
+            )
         )
+
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Buttons to Auth
-        Column(
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Button(
                 onClick = { onLogin(email, password) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF212121))
             ) {
                 Text("Login", color = Color.White)
             }
             Button(
-                onClick = { /* Lógica para registrarse */ },
-                modifier = Modifier.fillMaxWidth(),
+                onClick = onRegister,
+                modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBDBDBD))
             ) {
                 Text("Registrarse", color = Color.Black)
@@ -106,7 +117,6 @@ fun LoginScreen(
         }
     }
 }
-
 
 @Preview(showBackground = true)
 @Composable
