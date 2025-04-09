@@ -1,4 +1,4 @@
-package com.example.attendo.data.model
+package com.example.attendo.data.model.auth
 
 sealed class AuthUiState {
     data object Idle : AuthUiState()

@@ -3,7 +3,8 @@ package com.example.attendo.ui.viewmodel.auth.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.attendo.data.model.AuthUiState
+import com.example.attendo.data.model.auth.AuthUiState
+import com.example.attendo.data.model.auth.ValidationResult
 import com.example.attendo.data.repositories.AuthRepository
 import com.example.attendo.data.repositories.AuthRepositoryImpl
 import io.github.jan.supabase.SupabaseClient
@@ -24,6 +25,13 @@ class LoginViewModel(
     val currentUser: StateFlow<UserInfo?> = _currentUser.asStateFlow()
 
     fun login(email: String, password: String) {
+        val validationResult = validateForm(email, password)
+
+        if (validationResult is ValidationResult.Error) {
+            _uiState.value = AuthUiState.Error(validationResult.message)
+            return
+        }
+
         viewModelScope.launch {
             _uiState.value = AuthUiState.Loading
 
@@ -33,27 +41,12 @@ class LoginViewModel(
                     _uiState.value = AuthUiState.Success
                 },
                 onFailure = { error ->
-                    _uiState.value = AuthUiState.Error(error.message ?: "Unknown error")
+                    _uiState.value = AuthUiState.Error(error.message ?: "Error desconocido")
                 }
             )
         }
     }
 
-    fun register(email: String, password: String) {
-        viewModelScope.launch {
-            _uiState.value = AuthUiState.Loading
-
-            authRepository.signUp(email, password).fold(
-                onSuccess = { user ->
-                    _currentUser.value = user
-                    _uiState.value = AuthUiState.Success
-                },
-                onFailure = { error ->
-                    _uiState.value = AuthUiState.Error(error.message ?: "Unknown error")
-                }
-            )
-        }
-    }
 
     class LoginViewModelFactory(
         private val client: SupabaseClient
@@ -67,4 +60,30 @@ class LoginViewModel(
             throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
+
+
+    // VALIDATIONS FUNCTIONS
+
+    // Check email
+    fun isValidEmail(email: String): Boolean {
+        val emailPattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+"
+        return email.matches(emailPattern.toRegex()) && email.isNotEmpty()
+    }
+
+    // Check min pass length
+    fun isValidPassword(password: String): Boolean {
+        return password.length >= 6
+    }
+
+    // Check form null
+    fun validateForm(email: String, password: String): ValidationResult {
+        return when {
+            email.isEmpty() -> ValidationResult.Error("El email no puede estar vacío")
+            !isValidEmail(email) -> ValidationResult.Error("El formato del email no es válido")
+            password.isEmpty() -> ValidationResult.Error("La contraseña no puede estar vacía")
+            !isValidPassword(password) -> ValidationResult.Error("La contraseña debe tener al menos 6 caracteres")
+            else -> ValidationResult.Success
+        }
+    }
+
 }

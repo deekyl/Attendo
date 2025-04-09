@@ -16,17 +16,60 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.tooling.preview.Preview
 import com.example.attendo.R
+import com.example.attendo.ui.viewmodel.auth.login.LoginViewModel
+import com.example.attendo.data.model.auth.AuthUiState
 
 @Composable
 fun LoginScreen(
+    viewModel: LoginViewModel,
     onLogin: (email: String, password: String) -> Unit,
     onRegister: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
+
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
+
+    var formSubmitted by remember { mutableStateOf(false) }
+
+    val uiState by viewModel.uiState.collectAsState()
+
+    fun validateFields() {
+        emailError = when {
+            email.isEmpty() -> "El email no puede estar vacío"
+            !viewModel.isValidEmail(email) -> "Formato de email no válido"
+            else -> null
+        }
+
+        passwordError = when {
+            password.isEmpty() -> "La contraseña no puede estar vacía"
+            !viewModel.isValidPassword(password) -> "Mínimo 6 caracteres"
+            else -> null
+        }
+    }
+
+    LaunchedEffect(email, formSubmitted) {
+        if (formSubmitted) {
+            emailError = when {
+                email.isEmpty() -> "El email no puede estar vacío"
+                !viewModel.isValidEmail(email) -> "Formato de email no válido"
+                else -> null
+            }
+        }
+    }
+
+    LaunchedEffect(password, formSubmitted) {
+        if (formSubmitted) {
+            passwordError = when {
+                password.isEmpty() -> "La contraseña no puede estar vacía"
+                !viewModel.isValidPassword(password) -> "Mínimo 6 caracteres"
+                else -> null
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -53,15 +96,29 @@ fun LoginScreen(
                     contentDescription = "Email Icon"
                 )
             },
+            isError = emailError != null,
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                errorBorderColor = MaterialTheme.colorScheme.error,
                 cursorColor = MaterialTheme.colorScheme.primary,
-                focusedLabelColor = MaterialTheme.colorScheme.primary
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                errorLabelColor = MaterialTheme.colorScheme.error
             )
         )
+
+        emailError?.let {
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier
+                    .align(Alignment.Start)
+                    .padding(start = 8.dp)
+            )
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -75,6 +132,7 @@ fun LoginScreen(
                     contentDescription = "Key Icon"
                 )
             },
+            isError = passwordError != null,
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
@@ -89,42 +147,74 @@ fun LoginScreen(
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                errorBorderColor = MaterialTheme.colorScheme.error,
                 cursorColor = MaterialTheme.colorScheme.primary,
-                focusedLabelColor = MaterialTheme.colorScheme.primary
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                errorLabelColor = MaterialTheme.colorScheme.error
             )
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        // Mostrar error de contraseña si existe
+        passwordError?.let {
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier
+                    .align(Alignment.Start)
+                    .padding(start = 8.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Mostrar mensaje de error general (del backend) si existe
+        if (uiState is AuthUiState.Error) {
+            Text(
+                text = (uiState as AuthUiState.Error).message,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Button(
-                onClick = { onLogin(email, password) },
+                onClick = {
+                    formSubmitted = true
+
+                    validateFields()
+
+                    if (emailError == null && passwordError == null) {
+                        onLogin(email, password)
+                    }
+                },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF212121))
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF212121)),
+                enabled = uiState !is AuthUiState.Loading
             ) {
-                Text("Login", color = Color.White)
+                if (uiState is AuthUiState.Loading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else {
+                    Text("Login", color = Color.White)
+                }
             }
             Button(
                 onClick = onRegister,
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBDBDBD))
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBDBDBD)),
+                enabled = uiState !is AuthUiState.Loading
             ) {
                 Text("Registrarse", color = Color.Black)
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LoginScreenPreview() {
-    MaterialTheme {
-        LoginScreen(
-            onLogin = { _, _ -> },
-            onRegister = { }
-        )
     }
 }

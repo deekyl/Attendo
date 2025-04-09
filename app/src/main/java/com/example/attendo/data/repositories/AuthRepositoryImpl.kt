@@ -1,6 +1,7 @@
 package com.example.attendo.data.repositories
 
 
+import android.util.Log
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.user.UserInfo
 import io.github.jan.supabase.SupabaseClient
@@ -18,6 +19,7 @@ class AuthRepositoryImpl(
             }
             val user = client.auth.currentUserOrNull()
             if (user != null) {
+                Log.e("attendo", "Login -> OK")
                 Result.success(user)
             } else {
                 Result.failure(Exception("Cannot obtain user information"))

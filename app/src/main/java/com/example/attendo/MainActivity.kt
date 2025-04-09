@@ -25,7 +25,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
-import com.example.attendo.data.model.AuthUiState
+import com.example.attendo.data.model.auth.AuthUiState
 import com.example.attendo.data.network.Supabase.spClient
 import com.example.attendo.ui.viewmodel.auth.login.LoginViewModel
 
@@ -67,8 +67,8 @@ fun AuthNavigation(authRepository: AuthRepository, client: SupabaseClient) {
 
     LaunchedEffect(Unit) {
         isLoading = true
-        val currentUser = authRepository.getCurrentUser()
-
+        //val currentUser = authRepository.getCurrentUser()
+        val currentUser = null
         startDestination = if (currentUser != null) {
             "dashboard"
         } else {
@@ -106,6 +106,7 @@ fun AuthNavigation(authRepository: AuthRepository, client: SupabaseClient) {
                 }
 
                 LoginScreen(
+                    viewModel = viewModel,
                     onLogin = { email, password ->
                         viewModel.login(email, password)
                     },
