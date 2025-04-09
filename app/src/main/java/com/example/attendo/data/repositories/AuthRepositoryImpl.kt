@@ -1,36 +1,54 @@
-// Data layer: AuthRepositoryImpl.kt
 package com.example.attendo.data.repositories
 
-import com.example.attendo.data.repositories.AuthRepository
-import io.github.jan.supabase.auth.Auth
+
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.user.UserInfo
+import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.providers.builtin.Email
 
-
 class AuthRepositoryImpl(
-    private val auth: Auth
+    private val client: SupabaseClient
 ) : AuthRepository {
-    override suspend fun login(email: String, password: String): Boolean {
-        return try {
-            auth.signInWith(Email) {
-                this.email = email
-                this.password = password
-            }
-            true
-        } catch (e: Exception) {
-            false
-        }
 
+    override suspend fun login(mail: String, pass: String): Result<UserInfo> {
+        return try {
+            client.auth.signInWith(Email) {
+                this.email = mail
+                this.password = pass
+            }
+            val user = client.auth.currentUserOrNull()
+            if (user != null) {
+                Result.success(user)
+            } else {
+                Result.failure(Exception("Cannot obtain user information"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
-    override suspend fun signUp(email: String, password: String): Boolean {
+    override suspend fun signUp(email: String, password: String): Result<UserInfo> {
         return try {
-            auth.signUpWith(Email) {
+          client.auth.signUpWith(Email) {
                 this.email = email
                 this.password = password
             }
-            true
+            val user = client.auth.currentUserOrNull()
+            if(user != null){
+                Result.success(user)
+            } else{
+                Result.failure(Exception("Registration successful but email verification required"))
+            }
         } catch (e: Exception) {
-            false
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getCurrentUser(): UserInfo? {
+        return try {
+            client.auth.currentUserOrNull()
+        } catch (e: Exception) {
+            null
         }
     }
 }

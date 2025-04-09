@@ -11,30 +11,30 @@ android {
     namespace = "com.example.attendo"
     compileSdk = 35
 
+    val key : String = com.android.build.gradle.internal.cxx.configure.gradleLocalProperties(rootDir, providers)
+        .getProperty("SECRET")
+    val url : String = com.android.build.gradle.internal.cxx.configure.gradleLocalProperties(rootDir, providers)
+        .getProperty("SUPABASE_URL")
+
     defaultConfig {
         applicationId = "com.example.attendo"
         minSdk = 28
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         val properties = Properties().apply {
             load(rootProject.file("local.properties").inputStream())
         }
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${properties.getProperty("SUPABASE_ANON_KEY")}\"")
+        buildConfigField("String", "SECRET", "\"${properties.getProperty("SECRET")}\"")
+        buildConfigField("String", "SUPABASE_URL", "\"${properties.getProperty("SUPABASE_URL")}\"")
+    }
 
-        android {
-            buildFeatures {
-                buildConfig = true
-            }
-            defaultConfig {
-                buildConfigField("String", "SUPABASE_ANON_KEY", "\"${properties.getProperty("SUPABASE_ANON_KEY")}\"")
-                buildConfigField("String", "SECRET", "\"${properties.getProperty("SECRET")}\"")
-                buildConfigField("String", "SUPABASE_URL", "\"${properties.getProperty("SUPABASE_URL")}\"")
-
-            }
-        }
+    buildFeatures {
+        buildConfig = true
+        compose = true
     }
 
     buildTypes {
@@ -46,6 +46,7 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -53,14 +54,9 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
-    buildFeatures {
-        compose = true
-    }
 }
 
 dependencies {
-
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -73,14 +69,17 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.animation.core.lint)
     implementation(libs.androidx.compose.material)
+    implementation(libs.androidx.navigation.compose)
     //SUPABASE
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.gotrue.kt.v141)
+    implementation(libs.postgrest.kt.v141)
     implementation(libs.postgrest.kt)
     implementation(libs.storage.kt)
     implementation(libs.auth.kt)
     implementation(libs.ktor.client.android)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.utils)
-
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
