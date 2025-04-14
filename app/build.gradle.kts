@@ -70,16 +70,19 @@ dependencies {
     implementation(libs.androidx.animation.core.lint)
     implementation(libs.androidx.compose.material)
     implementation(libs.androidx.navigation.compose)
-    //SUPABASE
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.gotrue.kt.v141)
-    implementation(libs.postgrest.kt.v141)
-    implementation(libs.postgrest.kt)
     implementation(libs.storage.kt)
     implementation(libs.auth.kt)
     implementation(libs.ktor.client.android)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.utils)
+    // KOIN
+    implementation(libs.koin.android)
+    // Jetpack ViewModel
+    implementation(libs.koin.androidx.viewmodel)
+    // Compose
+    implementation(libs.koin.androidx.compose)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -17,26 +17,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.example.attendo.data.repositories.AuthRepository
-import com.example.attendo.data.repositories.AuthRepositoryImpl
 import com.example.attendo.ui.screen.auth.LoginScreen
 import com.example.attendo.ui.theme.AttendoTheme
-import io.github.jan.supabase.SupabaseClient
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.runtime.*
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import com.example.attendo.data.model.auth.AuthUiState
-import com.example.attendo.data.network.Supabase.spClient
 import com.example.attendo.ui.viewmodel.auth.login.LoginViewModel
+import org.koin.androidx.compose.koinViewModel
+import org.koin.androidx.compose.get
+import org.koin.compose.koinInject
 
 class MainActivity : ComponentActivity() {
-
-    lateinit var client: SupabaseClient
-    lateinit var authRepository: AuthRepository
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        initVars()
         enableEdgeToEdge()
 
         setContent {
@@ -45,30 +39,24 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AuthNavigation(authRepository, client)
+                    AuthNavigation()
                 }
             }
         }
     }
-
-
-    private fun initVars() {
-        client = spClient
-        authRepository = AuthRepositoryImpl(client)
-    }
 }
 
 @Composable
-fun AuthNavigation(authRepository: AuthRepository, client: SupabaseClient) {
+fun AuthNavigation() {
     val navController = rememberNavController()
+    val authRepository: AuthRepository = koinInject()
 
     var startDestination by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         isLoading = true
-        //val currentUser = authRepository.getCurrentUser()
-        val currentUser = null
+        val currentUser = authRepository.getCurrentUser()
         startDestination = if (currentUser != null) {
             "dashboard"
         } else {
@@ -76,7 +64,6 @@ fun AuthNavigation(authRepository: AuthRepository, client: SupabaseClient) {
         }
         isLoading = false
     }
-
 
     if (isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -91,10 +78,7 @@ fun AuthNavigation(authRepository: AuthRepository, client: SupabaseClient) {
             startDestination = destination
         ) {
             composable("login") {
-                val viewModel: LoginViewModel = viewModel(
-                    factory = LoginViewModel.LoginViewModelFactory(client)
-                )
-
+                val viewModel = koinViewModel<LoginViewModel>()
                 val uiState by viewModel.uiState.collectAsState()
 
                 LaunchedEffect(uiState) {
@@ -106,25 +90,16 @@ fun AuthNavigation(authRepository: AuthRepository, client: SupabaseClient) {
                 }
 
                 LoginScreen(
-                    viewModel = viewModel,
-                    onLogin = { email, password ->
-                        viewModel.login(email, password)
-                    },
-                    onRegister = {
-                        navController.navigate("register")
+                    onLoginSuccess = {
+                        navController.navigate("dashboard") {
+                            popUpTo("login") { inclusive = true }
+                        }
                     }
                 )
             }
-
-            composable("register") {
-
-            }
-
             composable("dashboard") {
 
             }
         }
     }
 }
-
-

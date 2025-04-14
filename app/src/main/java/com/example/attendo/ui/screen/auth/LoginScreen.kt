@@ -19,12 +19,12 @@ import androidx.compose.ui.unit.dp
 import com.example.attendo.R
 import com.example.attendo.ui.viewmodel.auth.login.LoginViewModel
 import com.example.attendo.data.model.auth.AuthUiState
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun LoginScreen(
-    viewModel: LoginViewModel,
-    onLogin: (email: String, password: String) -> Unit,
-    onRegister: () -> Unit
+    onLoginSuccess: () -> Unit,
+    viewModel: LoginViewModel = koinViewModel()
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -36,6 +36,13 @@ fun LoginScreen(
     var formSubmitted by remember { mutableStateOf(false) }
 
     val uiState by viewModel.uiState.collectAsState()
+
+    // Observamos el estado de autenticación para navegar cuando sea exitoso
+    LaunchedEffect(uiState) {
+        if (uiState is AuthUiState.Success) {
+            onLoginSuccess()
+        }
+    }
 
     fun validateFields() {
         emailError = when {
@@ -154,7 +161,6 @@ fun LoginScreen(
             )
         )
 
-        // Mostrar error de contraseña si existe
         passwordError?.let {
             Text(
                 text = it,
@@ -168,7 +174,6 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Mostrar mensaje de error general (del backend) si existe
         if (uiState is AuthUiState.Error) {
             Text(
                 text = (uiState as AuthUiState.Error).message,
@@ -191,7 +196,7 @@ fun LoginScreen(
                     validateFields()
 
                     if (emailError == null && passwordError == null) {
-                        onLogin(email, password)
+                        viewModel.login(email, password)
                     }
                 },
                 modifier = Modifier.weight(1f),
@@ -207,14 +212,8 @@ fun LoginScreen(
                     Text("Login", color = Color.White)
                 }
             }
-            Button(
-                onClick = onRegister,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFBDBDBD)),
-                enabled = uiState !is AuthUiState.Loading
-            ) {
-                Text("Registrarse", color = Color.Black)
-            }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }

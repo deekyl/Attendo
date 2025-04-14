@@ -1,10 +1,11 @@
 [versions]
 agp = "8.9.1"
 authKt = "3.1.4"
-gotrueKt = "1.3.2"
-gotrueKtVersion = "1.4.1"
+koinAndroid = "3.5.0"
+koinAndroidxCompose = "3.5.0"
+koinAndroidxViewmodel = "3.5.0"
 kotlin = "2.0.21"
-coreKtx = "1.15.0"
+coreKtx = "1.16.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
@@ -13,14 +14,12 @@ ktorClientCore = "3.1.2"
 ktorUtils = "3.1.2"
 lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.10.1"
-composeBom = "2025.03.01"
-animationCoreLint = "1.8.0-rc02"
-material3 = "1.3.1"
+composeBom = "2025.04.00"
+animationCoreLint = "1.8.0-rc03"
+material3 = "1.3.2"
 materialIconsExtended = "1.7.8"
 composeMaterial = "1.4.1"
 navigationCompose = "2.8.9"
-postgrestKt = "3.1.4"
-postgrestKtVersion = "3.1.4"
 storageKt = "3.1.4"
 
 [libraries]
@@ -29,7 +28,6 @@ androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 auth-kt = { module = "io.github.jan-tennert.supabase:auth-kt", version.ref = "authKt" }
-gotrue-kt-v141 = { module = "io.github.jan-tennert.supabase:gotrue-kt", version.ref = "gotrueKtVersion" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -44,13 +42,14 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-animation-core-lint = { group = "androidx.compose.animation", name = "animation-core-lint", version.ref = "animationCoreLint" }
+koin-android = { module = "io.insert-koin:koin-android", version.ref = "koinAndroid" }
+koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koinAndroidxCompose" }
+koin-androidx-viewmodel = { module = "io.insert-koin:koin-androidx-viewmodel", version.ref = "koinAndroidxViewmodel" }
 ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktorClientAndroid" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktorClientCore" }
 ktor-utils = { module = "io.ktor:ktor-utils", version.ref = "ktorUtils" }
 material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
 androidx-compose-material = { group = "androidx.wear.compose", name = "compose-material", version.ref = "composeMaterial" }
-postgrest-kt = { module = "io.github.jan-tennert.supabase:postgrest-kt", version.ref = "postgrestKt" }
-postgrest-kt-v141 = { module = "io.github.jan-tennert.supabase:postgrest-kt", version.ref = "postgrestKtVersion" }
 storage-kt = { module = "io.github.jan-tennert.supabase:storage-kt", version.ref = "storageKt" }
 
 [plugins]

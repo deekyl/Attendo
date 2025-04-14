@@ -1,13 +1,10 @@
 package com.example.attendo.ui.viewmodel.auth.login
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.attendo.data.model.auth.AuthUiState
 import com.example.attendo.data.model.auth.ValidationResult
 import com.example.attendo.data.repositories.AuthRepository
-import com.example.attendo.data.repositories.AuthRepositoryImpl
-import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.user.UserInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +20,13 @@ class LoginViewModel(
 
     private val _currentUser = MutableStateFlow<UserInfo?>(null)
     val currentUser: StateFlow<UserInfo?> = _currentUser.asStateFlow()
+
+    init {
+        _currentUser.value = authRepository.getCurrentUser()
+        if (_currentUser.value != null) {
+            _uiState.value = AuthUiState.Success
+        }
+    }
 
     fun login(email: String, password: String) {
         val validationResult = validateForm(email, password)
@@ -47,21 +51,6 @@ class LoginViewModel(
         }
     }
 
-
-    class LoginViewModelFactory(
-        private val client: SupabaseClient
-    ) : ViewModelProvider.Factory {
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            if (modelClass.isAssignableFrom(LoginViewModel::class.java)) {
-                val repository = AuthRepositoryImpl(client)
-                @Suppress("UNCHECKED_CAST")
-                return LoginViewModel(repository) as T
-            }
-            throw IllegalArgumentException("Unknown ViewModel class")
-        }
-    }
-
-
     // VALIDATIONS FUNCTIONS
 
     // Check email
@@ -85,5 +74,4 @@ class LoginViewModel(
             else -> ValidationResult.Success
         }
     }
-
 }

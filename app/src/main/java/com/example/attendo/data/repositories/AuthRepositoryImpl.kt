@@ -6,6 +6,11 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.user.UserInfo
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.auth.status.SessionStatus
+import io.github.jan.supabase.auth.user.UserSession
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 
 class AuthRepositoryImpl(
     private val client: SupabaseClient
@@ -46,11 +51,22 @@ class AuthRepositoryImpl(
         }
     }
 
-    override suspend fun getCurrentUser(): UserInfo? {
+    override suspend fun logout(): Result<Unit> {
+        return try {
+            client.auth.signOut()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override fun getCurrentUser(): UserInfo? {
         return try {
             client.auth.currentUserOrNull()
         } catch (e: Exception) {
             null
         }
     }
+
+
 }
