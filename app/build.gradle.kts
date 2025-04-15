@@ -78,9 +78,6 @@ dependencies {
     implementation(libs.ktor.utils)
     // KOIN
     implementation(libs.koin.android)
-    // Jetpack ViewModel
-    implementation(libs.koin.androidx.viewmodel)
-    // Compose
     implementation(libs.koin.androidx.compose)
 
     testImplementation(libs.junit)
