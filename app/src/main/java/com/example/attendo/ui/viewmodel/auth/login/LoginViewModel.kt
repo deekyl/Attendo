@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.attendo.data.model.auth.AuthUiState
 import com.example.attendo.data.model.auth.ValidationResult
-import com.example.attendo.data.repositories.AuthRepository
+import com.example.attendo.data.repositories.repository.AuthRepository
 import io.github.jan.supabase.auth.user.UserInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,8 +21,13 @@ class LoginViewModel(
     private val _currentUser = MutableStateFlow<UserInfo?>(null)
     val currentUser: StateFlow<UserInfo?> = _currentUser.asStateFlow()
 
+    private val _isAdmin = MutableStateFlow<Boolean>(false)
+    val isAdmin: StateFlow<Boolean> = _isAdmin.asStateFlow()
+
     init {
         _currentUser.value = authRepository.getCurrentUser()
+        // BORRAR
+        _currentUser.value = null
         if (_currentUser.value != null) {
             _uiState.value = AuthUiState.Success
         }
@@ -40,12 +45,26 @@ class LoginViewModel(
             _uiState.value = AuthUiState.Loading
 
             authRepository.login(email, password).fold(
-                onSuccess = { user ->
-                    _currentUser.value = user
-                    _uiState.value = AuthUiState.Success
+                onSuccess = { userInfo ->
+                    _currentUser.value = userInfo
+
+                    // Verificar si el usuario está activo
+                    authRepository.checkUserStatus(userInfo.id).fold(
+                        onSuccess = { user ->
+                            // Usuario activo, verificar si es admin
+                            _isAdmin.value = user.isAdmin
+                            _uiState.value = AuthUiState.Success
+                        },
+                        onFailure = { error ->
+                            _uiState.value = AuthUiState.Error(error.message ?: "Error verificando estado de usuario")
+                            authRepository.logout()
+                            _currentUser.value = null
+                        }
+                    )
                 },
                 onFailure = { error ->
-                    _uiState.value = AuthUiState.Error(error.message ?: "Error desconocido")
+                    val errorMessage = error.message ?: "Error desconocido al iniciar sesión"
+                    _uiState.value = AuthUiState.Error(errorMessage)
                 }
             )
         }

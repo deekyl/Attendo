@@ -16,7 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.example.attendo.data.repositories.AuthRepository
+import com.example.attendo.data.repositories.repository.AuthRepository
 import com.example.attendo.ui.screen.auth.LoginScreen
 import com.example.attendo.ui.theme.AttendoTheme
 import androidx.navigation.compose.rememberNavController
@@ -56,7 +56,9 @@ fun AuthNavigation() {
 
     LaunchedEffect(Unit) {
         isLoading = true
-        val currentUser = authRepository.getCurrentUser()
+        //var currentUser = authRepository.getCurrentUser()
+        // BORRAR
+        val currentUser = null
         startDestination = if (currentUser != null) {
             "dashboard"
         } else {
