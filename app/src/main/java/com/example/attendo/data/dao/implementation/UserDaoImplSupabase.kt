@@ -25,6 +25,7 @@ class UserDaoImplSupabase(
         }
     }
 
+
     override suspend fun isUserActive(userId: String): Boolean {
         return try {
             val user = getUserById(userId)
