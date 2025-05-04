@@ -78,12 +78,19 @@ class AuthRepositoryImplSupabase(
         }
     }
 
-    override suspend fun getUserDetails(userId: String): Result<User> {
+    override suspend fun getCurrentUserDetails(): Result<User> {
         return try {
-            val user = userDao.getUserById(userId)
-                ?: return Result.failure(Exception("Usuario no encontrado"))
-
-            Result.success(user)
+            val currentUser = client.auth.currentUserOrNull()
+            if (currentUser != null) {
+                val userDetails = userDao.getUserById(currentUser.id)
+                if (userDetails != null) {
+                    Result.success(userDetails)
+                } else {
+                    Result.failure(Exception("No hay usuario logueado"))
+                }
+            } else {
+                Result.failure(Exception("No hay usuario logueado"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
