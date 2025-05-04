@@ -83,7 +83,7 @@ class LoginViewModel(
         return password.length >= 6
     }
 
-    // Check form null
+    // Check nulls
     fun validateForm(email: String, password: String): ValidationResult {
         return when {
             email.isEmpty() -> ValidationResult.Error("El email no puede estar vacío")

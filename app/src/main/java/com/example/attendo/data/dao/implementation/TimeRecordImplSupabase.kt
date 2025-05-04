@@ -10,10 +10,12 @@ import io.github.jan.supabase.postgrest.query.Order
 class TimeRecordImplSupabase(
     private val client: SupabaseClient
 ) : TimeRecordDao {
+    // En TimeRecordImplSupabase.kt
+
     override suspend fun getLastTimeRecord(userId: String): TimeRecord? {
         return try {
             val response = client.postgrest
-                .from("attendance_records")
+                .from("time_records")
                 .select {
                     filter {
                         eq("user_id", userId)
@@ -60,6 +62,7 @@ class TimeRecordImplSupabase(
             client.postgrest
                 .from("time_records")
                 .insert(record) {
+                    select()
                 }
                 .decodeSingle<TimeRecord>()
         } catch (e: Exception) {

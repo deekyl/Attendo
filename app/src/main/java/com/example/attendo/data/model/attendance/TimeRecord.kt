@@ -5,7 +5,7 @@ import kotlinx.serialization.SerialName
 
 @Serializable
 data class TimeRecord(
-    @SerialName("record_id") val recordId: String? = null,
+    @SerialName("record_id") val recordId: Int? = null,
     @SerialName("user_id") val userId: String,
     @SerialName("time") val time: String,
     @SerialName("is_entry") val isEntry: Boolean,

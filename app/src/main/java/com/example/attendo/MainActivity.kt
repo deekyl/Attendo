@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,7 +24,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.compose.runtime.*
 import androidx.navigation.compose.NavHost
 import com.example.attendo.data.model.auth.AuthUiState
+import com.example.attendo.data.model.user.UserState
+import com.example.attendo.ui.screen.user.UserDashboardScreen
 import com.example.attendo.ui.viewmodel.auth.login.LoginViewModel
+import com.example.attendo.ui.viewmodel.user.UserViewModel
 import org.koin.androidx.compose.koinViewModel
 import org.koin.androidx.compose.get
 import org.koin.compose.koinInject
@@ -56,9 +60,7 @@ fun AuthNavigation() {
 
     LaunchedEffect(Unit) {
         isLoading = true
-        //var currentUser = authRepository.getCurrentUser()
-        // BORRAR
-        val currentUser = null
+        val currentUser = authRepository.getCurrentUser()
         startDestination = if (currentUser != null) {
             "dashboard"
         } else {
@@ -100,7 +102,65 @@ fun AuthNavigation() {
                 )
             }
             composable("dashboard") {
+                val userViewModel = koinViewModel<UserViewModel>()
+                val userState by userViewModel.userState.collectAsState()
 
+                when (userState) {
+                    is UserState.Loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                    is UserState.Regular -> {
+                        UserDashboardScreen(
+                            user = (userState as UserState.Regular).user,
+                            onLogout = {
+                                navController.navigate("login") {
+                                    popUpTo("dashboard") { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+                    is UserState.Admin -> {
+                        // TODO: Implementar AdminDashboardScreen
+                        // AdminDashboardScreen(
+                        //     user = userState.user,
+                        //     onLogout = {
+                        //         navController.navigate("login") {
+                        //             popUpTo("dashboard") { inclusive = true }
+                        //         }
+                        //     }
+                        // )
+
+                        // Temporalmente mostramos un mensaje
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "Dashboard de Administrador - Pendiente de implementar",
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                        }
+                    }
+                    is UserState.Inactive -> {
+                        LaunchedEffect(Unit) {
+                            navController.navigate("login") {
+                                popUpTo("dashboard") { inclusive = true }
+                            }
+                        }
+                    }
+                    is UserState.Error -> {
+                        LaunchedEffect(Unit) {
+                            navController.navigate("login") {
+                                popUpTo("dashboard") { inclusive = true }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
