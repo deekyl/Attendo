@@ -61,72 +61,93 @@ fun UserDashboardScreen(
                 .padding(paddingValues)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "Bienvenido/a, ${user.fullName}",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Estado actual
-            TimeRecordStatusCard(
-                timeRecordState = timeRecordState,
-                breakTypes = breakTypes,
-                onCheckIn = { timeRecordViewModel.checkIn() },
-                onCheckOut = { timeRecordViewModel.checkOut() },
-                onStartBreak = { breakTypeId -> timeRecordViewModel.startBreak(breakTypeId) },
-                onEndBreak = { timeRecordViewModel.endBreak() },
-                getBreakTypeDescription = { timeRecordViewModel.getBreakTypeDescription(it) }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Historial de fichajes del día
-            Card(
-                modifier = Modifier.fillMaxWidth()
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Bienvenido/a, ${user.fullName}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Estado actual
+                TimeRecordStatusCard(
+                    timeRecordState = timeRecordState,
+                    breakTypes = breakTypes,
+                    onCheckIn = { timeRecordViewModel.checkIn() },
+                    onCheckOut = { timeRecordViewModel.checkOut() },
+                    onStartBreak = { breakTypeId -> timeRecordViewModel.startBreak(breakTypeId) },
+                    onEndBreak = { timeRecordViewModel.endBreak() },
+                    getBreakTypeDescription = { timeRecordViewModel.getBreakTypeDescription(it) }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Historial de fichajes del día
+                Card(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "Fichajes de hoy",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    if (todayRecords.isEmpty()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
                         Text(
-                            text = "No hay registros para hoy",
-                            color = Color.Gray,
-                            style = MaterialTheme.typography.bodyMedium
+                            text = "Fichajes de hoy",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
                         )
-                    } else {
-                        LazyColumn {
-                            items(todayRecords) { record ->
-                                TimeRecordItem(
-                                    record = record,
-                                    getBreakTypeDescription = {
-                                        timeRecordViewModel.getBreakTypeDescription(
-                                            it
-                                        )
-                                    }
-                                )
 
-                                if (todayRecords.indexOf(record) < todayRecords.size - 1) {
-                                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        if (todayRecords.isEmpty()) {
+                            Text(
+                                text = "No hay registros para hoy",
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        } else {
+                            LazyColumn {
+                                items(todayRecords) { record ->
+                                    TimeRecordItem(
+                                        record = record,
+                                        getBreakTypeDescription = {
+                                            timeRecordViewModel.getBreakTypeDescription(
+                                                it
+                                            )
+                                        }
+                                    )
+
+                                    if (todayRecords.indexOf(record) < todayRecords.size - 1) {
+                                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = { /* Navegar a la pantalla de más fichajes */ },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF212121))
+            ) {
+                Text(
+                    "Consultar más fichajes",
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleSmall
+                )
+            }
+
         }
     }
 }
@@ -327,9 +348,18 @@ fun TimeRecordItem(
 ) {
     val formatter = DateTimeFormatter.ofPattern("HH:mm:ss")
     val timestamp = try {
-        LocalDateTime.parse(record.time).format(formatter)
+        // Parsear el ISO-8601 con offset (ej: 2025-05-05T15:23:36.646088+00:00)
+        val dateTime = LocalDateTime.parse(record.time, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        dateTime.format(formatter)
     } catch (e: Exception) {
-        record.time
+        // Fallback: si el formato original falla, intentar con formato ISO_LOCAL_DATE_TIME
+        try {
+            val dateTime = LocalDateTime.parse(record.time, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            dateTime.format(formatter)
+        } catch (e2: Exception) {
+            // Si todo falla, mostrar el timestamp original
+            record.time
+        }
     }
 
     Row(
