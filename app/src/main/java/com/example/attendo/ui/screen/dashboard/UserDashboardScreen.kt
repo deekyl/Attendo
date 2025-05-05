@@ -1,7 +1,7 @@
-package com.example.attendo.ui.screen.user
+package com.example.attendo.ui.screen.dashboard
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -18,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.attendo.data.model.attendance.BreakType
 import com.example.attendo.data.model.attendance.TimeRecord
 import com.example.attendo.data.model.user.User
 import com.example.attendo.data.model.attendance.TimeRecordState
@@ -36,6 +38,7 @@ fun UserDashboardScreen(
 ) {
     val timeRecordState by timeRecordViewModel.timeRecordState.collectAsState()
     val todayRecords by timeRecordViewModel.todayRecords.collectAsState()
+    val breakTypes by timeRecordViewModel.breakTypes.collectAsState()
 
     Scaffold(
         topBar = {
@@ -57,8 +60,11 @@ fun UserDashboardScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top
         ) {
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text(
                 text = "Bienvenido/a, ${user.fullName}",
                 style = MaterialTheme.typography.headlineSmall,
@@ -70,10 +76,12 @@ fun UserDashboardScreen(
             // Estado actual
             TimeRecordStatusCard(
                 timeRecordState = timeRecordState,
+                breakTypes = breakTypes,
                 onCheckIn = { timeRecordViewModel.checkIn() },
                 onCheckOut = { timeRecordViewModel.checkOut() },
                 onStartBreak = { breakTypeId -> timeRecordViewModel.startBreak(breakTypeId) },
-                onEndBreak = { timeRecordViewModel.endBreak() }
+                onEndBreak = { timeRecordViewModel.endBreak() },
+                getBreakTypeDescription = { timeRecordViewModel.getBreakTypeDescription(it) }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -96,12 +104,20 @@ fun UserDashboardScreen(
                     if (todayRecords.isEmpty()) {
                         Text(
                             text = "No hay registros para hoy",
-                            color = Color.Gray
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     } else {
                         LazyColumn {
                             items(todayRecords) { record ->
-                                TimeRecordItem(record = record)
+                                TimeRecordItem(
+                                    record = record,
+                                    getBreakTypeDescription = {
+                                        timeRecordViewModel.getBreakTypeDescription(
+                                            it
+                                        )
+                                    }
+                                )
 
                                 if (todayRecords.indexOf(record) < todayRecords.size - 1) {
                                     Divider(modifier = Modifier.padding(vertical = 8.dp))
@@ -118,10 +134,12 @@ fun UserDashboardScreen(
 @Composable
 fun TimeRecordStatusCard(
     timeRecordState: TimeRecordState,
+    breakTypes: List<BreakType>,
     onCheckIn: () -> Unit,
     onCheckOut: () -> Unit,
     onStartBreak: (Int) -> Unit,
-    onEndBreak: () -> Unit
+    onEndBreak: () -> Unit,
+    getBreakTypeDescription: (Int) -> String = { "Descanso" }
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -135,7 +153,9 @@ fun TimeRecordStatusCard(
         )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -152,6 +172,7 @@ fun TimeRecordStatusCard(
                         modifier = Modifier.size(24.dp)
                     )
                 }
+
                 is TimeRecordState.CheckedIn -> {
                     Icon(
                         imageVector = Icons.Default.Check,
@@ -171,7 +192,9 @@ fun TimeRecordStatusCard(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Menú para diferentes tipos de pausas
                         var expanded by remember { mutableStateOf(false) }
@@ -194,29 +217,19 @@ fun TimeRecordStatusCard(
                                 expanded = expanded,
                                 onDismissRequest = { expanded = false }
                             ) {
-                                DropdownMenuItem(
-                                    text = { Text("Pausa para comer") },
-                                    onClick = {
-                                        onStartBreak(1)
-                                        expanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Pausa para café") },
-                                    onClick = {
-                                        onStartBreak(2)
-                                        expanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Asuntos personales") },
-                                    onClick = {
-                                        onStartBreak(3)
-                                        expanded = false
-                                    }
-                                )
+                                breakTypes.forEach { breakType ->
+                                    DropdownMenuItem(
+                                        text = { Text(breakType.description) },
+                                        onClick = {
+                                            onStartBreak(breakType.breakId)
+                                            expanded = false
+                                        }
+                                    )
+                                }
                             }
                         }
+
+                        Spacer(modifier = Modifier.width(16.dp))
 
                         Button(
                             onClick = onCheckOut,
@@ -228,6 +241,7 @@ fun TimeRecordStatusCard(
                         }
                     }
                 }
+
                 is TimeRecordState.OnBreak -> {
                     val breakTypeId = timeRecordState.breakTypeId
 
@@ -241,12 +255,7 @@ fun TimeRecordStatusCard(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "En pausa: " + when (breakTypeId) {
-                            1 -> "Comida"
-                            2 -> "Café"
-                            3 -> "Asuntos personales"
-                            else -> "Descanso"
-                        },
+                        text = "En pausa: ${getBreakTypeDescription(breakTypeId)}",
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFFF9800)
                     )
@@ -262,6 +271,7 @@ fun TimeRecordStatusCard(
                         Text("Finalizar pausa")
                     }
                 }
+
                 is TimeRecordState.CheckedOut -> {
                     Icon(
                         imageVector = Icons.Default.ExitToApp,
@@ -289,6 +299,7 @@ fun TimeRecordStatusCard(
                         Text("Registrar entrada")
                     }
                 }
+
                 is TimeRecordState.Error -> {
                     Icon(
                         imageVector = Icons.Default.Error,
@@ -310,7 +321,10 @@ fun TimeRecordStatusCard(
 }
 
 @Composable
-fun TimeRecordItem(record: TimeRecord) {
+fun TimeRecordItem(
+    record: TimeRecord,
+    getBreakTypeDescription: (Int) -> String = { "Descanso" }
+) {
     val formatter = DateTimeFormatter.ofPattern("HH:mm:ss")
     val timestamp = try {
         LocalDateTime.parse(record.time).format(formatter)
@@ -330,26 +344,25 @@ fun TimeRecordItem(record: TimeRecord) {
                 "Entrada",
                 Color(0xFF4CAF50)
             )
+
             !record.isEntry && record.breakTypeId == null -> Triple(
                 Icons.Default.Logout,
                 "Salida",
                 Color(0xFFF44336)
             )
+
             !record.isEntry && record.breakTypeId != null -> Triple(
                 Icons.Default.PauseCircle,
-                "Inicio de pausa: " + when (record.breakTypeId) {
-                    1 -> "Comida"
-                    2 -> "Café"
-                    3 -> "Asuntos personales"
-                    else -> "Descanso"
-                },
+                "Inicio de pausa: ${getBreakTypeDescription(record.breakTypeId)}",
                 Color(0xFFFF9800)
             )
+
             record.isEntry && record.breakTypeId != null -> Triple(
                 Icons.Default.PlayCircle,
                 "Fin de pausa",
                 Color(0xFF2196F3)
             )
+
             else -> Triple(
                 Icons.Default.Info,
                 "Desconocido",
@@ -361,28 +374,31 @@ fun TimeRecordItem(record: TimeRecord) {
             imageVector = icon,
             contentDescription = null,
             tint = color,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(20.dp)
         )
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
         Column {
             Text(
                 text = label,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                style = MaterialTheme.typography.bodyMedium
             )
 
             Text(
                 text = timestamp,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray
+                color = Color.Gray,
+                lineHeight = 16.sp
             )
 
             if (record.location != null) {
                 Text(
                     text = "Ubicación: ${record.location}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    color = Color.Gray,
+                    lineHeight = 16.sp
                 )
             }
 
@@ -390,7 +406,8 @@ fun TimeRecordItem(record: TimeRecord) {
                 Text(
                     text = "Registro manual",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFFFF5722)
+                    color = Color(0xFFFF5722),
+                    lineHeight = 16.sp
                 )
             }
         }

@@ -12,6 +12,8 @@ import com.example.attendo.ui.viewmodel.timerecord.TimeRecordViewModel
 import com.example.attendo.ui.viewmodel.user.UserViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
+import com.example.attendo.data.dao.implementation.BreakTypeImplSupabase
+import com.example.attendo.data.dao.interfaces.BreakTypeDao
 
 val appModule = module {
     single { Supabase.spClient }
@@ -19,6 +21,7 @@ val appModule = module {
     // DAos
     single<UserDao> { UserDaoImplSupabase(get()) }
     single<TimeRecordDao> { TimeRecordImplSupabase(get()) }
+    single<BreakTypeDao> { BreakTypeImplSupabase(get()) }
 
     // Repositorios
     single<AuthRepository> { AuthRepositoryImplSupabase(get(), get()) }
@@ -26,5 +29,11 @@ val appModule = module {
     // ViewModels
     viewModel { LoginViewModel(get()) }
     viewModel { UserViewModel(get()) }
-    viewModel { parameters -> TimeRecordViewModel(get(), parameters.get()) }
+    viewModel { parameters ->
+        TimeRecordViewModel(
+            timeRecordDao = get(),
+            breakTypeDao = get(),
+            userId = parameters.get()
+        )
+    }
 }

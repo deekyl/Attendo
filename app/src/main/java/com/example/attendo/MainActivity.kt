@@ -25,11 +25,10 @@ import androidx.compose.runtime.*
 import androidx.navigation.compose.NavHost
 import com.example.attendo.data.model.auth.AuthUiState
 import com.example.attendo.data.model.user.UserState
-import com.example.attendo.ui.screen.user.UserDashboardScreen
+import com.example.attendo.ui.screen.dashboard.UserDashboardScreen
 import com.example.attendo.ui.viewmodel.auth.login.LoginViewModel
 import com.example.attendo.ui.viewmodel.user.UserViewModel
 import org.koin.androidx.compose.koinViewModel
-import org.koin.androidx.compose.get
 import org.koin.compose.koinInject
 
 class MainActivity : ComponentActivity() {

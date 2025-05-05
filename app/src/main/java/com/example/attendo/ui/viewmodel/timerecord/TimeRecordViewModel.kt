@@ -2,7 +2,9 @@ package com.example.attendo.ui.viewmodel.timerecord
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.attendo.data.dao.interfaces.BreakTypeDao
 import com.example.attendo.data.dao.interfaces.TimeRecordDao
+import com.example.attendo.data.model.attendance.BreakType
 import com.example.attendo.data.model.attendance.TimeRecord
 import com.example.attendo.data.model.attendance.TimeRecordState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +17,7 @@ import java.time.format.DateTimeFormatter
 
 class TimeRecordViewModel(
     private val timeRecordDao: TimeRecordDao,
+    private val breakTypeDao: BreakTypeDao,
     private val userId: String
 ) : ViewModel() {
 
@@ -24,9 +27,13 @@ class TimeRecordViewModel(
     private val _todayRecords = MutableStateFlow<List<TimeRecord>>(emptyList())
     val todayRecords: StateFlow<List<TimeRecord>> = _todayRecords.asStateFlow()
 
+    private val _breakTypes = MutableStateFlow<List<BreakType>>(emptyList())
+    val breakTypes: StateFlow<List<BreakType>> = _breakTypes.asStateFlow()
+
     init {
         loadCurrentStatus()
         loadTodayRecords()
+        loadBreakTypes()
     }
 
     private fun loadCurrentStatus() {
@@ -59,6 +66,16 @@ class TimeRecordViewModel(
         }
     }
 
+    private fun loadBreakTypes() {
+        viewModelScope.launch {
+            try {
+                _breakTypes.value = breakTypeDao.getAllActiveBreakTypes()
+            } catch (e: Exception) {
+                // Error silencioso, podríamos mostrar un error en la UI si es necesario
+            }
+        }
+    }
+
     fun checkIn(location: String? = null) {
         createTimeRecord(true, null, location)
     }
@@ -73,6 +90,10 @@ class TimeRecordViewModel(
 
     fun endBreak(location: String? = null) {
         createTimeRecord(true, null, location)
+    }
+
+    fun getBreakTypeDescription(breakId: Int): String {
+        return _breakTypes.value.find { it.breakId == breakId }?.description ?: "Descanso"
     }
 
     private fun createTimeRecord(isEntry: Boolean, breakTypeId: Int?, location: String?) {
