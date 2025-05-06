@@ -88,8 +88,15 @@ class TimeRecordViewModel(
         createTimeRecord(false, breakTypeId, location)
     }
 
-    fun endBreak(location: String? = null) {
-        createTimeRecord(true, null, location)
+    suspend fun endBreak(location: String? = null) {
+        try {
+            val lastRecord = timeRecordDao.getLastTimeRecord(userId)
+            val breakTypeId = lastRecord?.breakTypeId
+            createTimeRecord(true, breakTypeId, location)
+        } catch  (e: Exception) {
+            _timeRecordState.value = TimeRecordState.Error(e.message ?: "Error al registrar fichaje")
+        }
+
     }
 
     fun getBreakTypeDescription(breakId: Int): String {

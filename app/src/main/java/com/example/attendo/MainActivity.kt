@@ -26,6 +26,7 @@ import androidx.navigation.compose.NavHost
 import com.example.attendo.data.model.auth.AuthUiState
 import com.example.attendo.data.model.user.UserState
 import com.example.attendo.ui.screen.dashboard.UserDashboardScreen
+import com.example.attendo.ui.screen.timerecord.TimeRecordListScreen
 import com.example.attendo.ui.viewmodel.auth.login.LoginViewModel
 import com.example.attendo.ui.viewmodel.user.UserViewModel
 import org.koin.androidx.compose.koinViewModel
@@ -113,16 +114,24 @@ fun AuthNavigation() {
                             CircularProgressIndicator()
                         }
                     }
+
                     is UserState.Regular -> {
                         UserDashboardScreen(
                             user = (userState as UserState.Regular).user,
                             onLogout = {
-                                navController.navigate("login") {
-                                    popUpTo("dashboard") { inclusive = true }
+                                userViewModel.logout {
+                                    navController.navigate("login") {
+                                        popUpTo("dashboard") { inclusive = true }
+                                    }
                                 }
+                            },
+                            // Implementación del callback de navegación a TimeRecordList
+                            onTimeRecordListClick = { user ->
+                                navController.navigate("timeRecordList/${user.userId}")
                             }
                         )
                     }
+
                     is UserState.Admin -> {
                         // TODO: Implementar AdminDashboardScreen
                         // AdminDashboardScreen(
@@ -145,6 +154,7 @@ fun AuthNavigation() {
                             )
                         }
                     }
+
                     is UserState.Inactive -> {
                         LaunchedEffect(Unit) {
                             navController.navigate("login") {
@@ -152,12 +162,54 @@ fun AuthNavigation() {
                             }
                         }
                     }
+
                     is UserState.Error -> {
                         LaunchedEffect(Unit) {
                             navController.navigate("login") {
                                 popUpTo("dashboard") { inclusive = true }
                             }
                         }
+                    }
+                }
+            }
+            composable("timeRecordList/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
+                val userViewModel = koinViewModel<UserViewModel>()
+                val userState by userViewModel.userState.collectAsState()
+
+                // Mostrar siempre un indicador de carga mientras esperamos el estado del usuario
+                var showContent by remember { mutableStateOf(false) }
+
+                LaunchedEffect(userState) {
+                    when (userState) {
+                        is UserState.Regular -> {
+                            showContent = true
+                        }
+                        is UserState.Loading -> {
+                            // Seguimos esperando
+                        }
+                        else -> {
+                            // Solo navegamos atrás si no está cargando y no es regular
+                            if (userState !is UserState.Loading) {
+                                navController.popBackStack()
+                            }
+                        }
+                    }
+                }
+
+                if (showContent) {
+                    val user = (userState as UserState.Regular).user
+                    TimeRecordListScreen(
+                        user = user,
+                        onBack = { navController.popBackStack() }
+                    )
+                } else {
+                    // Mostrar un indicador de carga mientras esperamos
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
                 }
             }

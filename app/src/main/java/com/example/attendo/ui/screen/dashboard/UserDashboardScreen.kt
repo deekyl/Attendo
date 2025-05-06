@@ -12,6 +12,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,18 +25,22 @@ import com.example.attendo.data.model.attendance.TimeRecord
 import com.example.attendo.data.model.user.User
 import com.example.attendo.data.model.attendance.TimeRecordState
 import com.example.attendo.ui.viewmodel.timerecord.TimeRecordViewModel
+import kotlinx.coroutines.coroutineScope
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserDashboardScreen(
     user: User,
     onLogout: () -> Unit,
+    onTimeRecordListClick: (User) -> Unit, // Añadido el nuevo parámetro
     timeRecordViewModel: TimeRecordViewModel = koinViewModel { parametersOf(user.userId) }
 ) {
+    val coroutineScope = rememberCoroutineScope()
     val timeRecordState by timeRecordViewModel.timeRecordState.collectAsState()
     val todayRecords by timeRecordViewModel.todayRecords.collectAsState()
     val breakTypes by timeRecordViewModel.breakTypes.collectAsState()
@@ -81,10 +86,26 @@ fun UserDashboardScreen(
                 TimeRecordStatusCard(
                     timeRecordState = timeRecordState,
                     breakTypes = breakTypes,
-                    onCheckIn = { timeRecordViewModel.checkIn() },
-                    onCheckOut = { timeRecordViewModel.checkOut() },
-                    onStartBreak = { breakTypeId -> timeRecordViewModel.startBreak(breakTypeId) },
-                    onEndBreak = { timeRecordViewModel.endBreak() },
+                    onCheckIn = {
+                        coroutineScope.launch {
+                            timeRecordViewModel.checkIn()
+                        }
+                    },
+                    onCheckOut = {
+                        coroutineScope.launch {
+                            timeRecordViewModel.checkOut()
+                        }
+                    },
+                    onStartBreak = { breakTypeId ->
+                        coroutineScope.launch {
+                            timeRecordViewModel.startBreak(breakTypeId)
+                        }
+                    },
+                    onEndBreak = {
+                        coroutineScope.launch {
+                            timeRecordViewModel.endBreak()
+                        }
+                    },
                     getBreakTypeDescription = { timeRecordViewModel.getBreakTypeDescription(it) }
                 )
 
@@ -134,8 +155,10 @@ fun UserDashboardScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            // Botón con el callback de navegación
             Button(
-                onClick = { /* Navegar a la pantalla de más fichajes */ },
+                onClick = { onTimeRecordListClick(user) }, // Usar el callback
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
@@ -147,7 +170,6 @@ fun UserDashboardScreen(
                     style = MaterialTheme.typography.titleSmall
                 )
             }
-
         }
     }
 }
