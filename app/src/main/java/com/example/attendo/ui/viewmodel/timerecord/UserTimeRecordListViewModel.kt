@@ -1,9 +1,11 @@
 package com.example.attendo.ui.viewmodel.timerecord
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.attendo.data.dao.interfaces.BreakTypeDao
 import com.example.attendo.data.dao.interfaces.TimeRecordDao
+import com.example.attendo.data.model.attendance.BreakType
 import com.example.attendo.data.model.attendance.TimeRecord
 import com.example.attendo.data.model.attendance.TimeRecordFilter
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +17,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
-class TimeRecordListViewModel(
+class UserTimeRecordListViewModel(
     private val timeRecordDao: TimeRecordDao,
     private val breakTypeDao: BreakTypeDao,
     private val userId: String
@@ -30,9 +32,41 @@ class TimeRecordListViewModel(
     private val _filter = MutableStateFlow(TimeRecordFilter(userId = userId))
     val filter: StateFlow<TimeRecordFilter> = _filter.asStateFlow()
 
-    // Cargamos los registros inicialmente
+    // Mapa para cachear los tipos de pausa (key=breakId, value=BreakType)
+    private val _breakTypesMap = MutableStateFlow<Map<Int, BreakType>>(emptyMap())
+
+    // Cargamos los registros y tipos de pausa inicialmente
     init {
+        loadBreakTypes() // Importante: cargar primero los tipos de pausa
         loadTimeRecords()
+    }
+
+    // Cargar todos los tipos de pausa disponibles
+    private fun loadBreakTypes() {
+        viewModelScope.launch {
+            try {
+                Log.d("UserTimeRecordListVM", "Cargando tipos de pausa...")
+                val breakTypes = breakTypeDao.getAllActiveBreakTypes()
+
+                // Debug
+                Log.d("UserTimeRecordListVM", "Tipos de pausa cargados: ${breakTypes.size}")
+                breakTypes.forEach {
+                    Log.d("UserTimeRecordListVM", "Break ID: ${it.breakId}, Desc: ${it.description}")
+                }
+
+                // Convertimos la lista a un mapa para acceso más rápido
+                _breakTypesMap.value = breakTypes.associateBy { it.breakId }
+            } catch (e: Exception) {
+                Log.e("UserTimeRecordListVM", "Error cargando tipos de pausa: ${e.message}", e)
+            }
+        }
+    }
+
+    // Obtener la descripción de un tipo de pausa
+    fun getBreakTypeDescription(breakId: Int): String {
+        val result = _breakTypesMap.value[breakId]?.description ?: "Pausa $breakId"
+        Log.d("UserTimeRecordListVM", "Solicitando descripción para ID $breakId: $result")
+        return result
     }
 
     // Función para actualizar el filtro
@@ -60,9 +94,6 @@ class TimeRecordListViewModel(
 
     // Función auxiliar para obtener todos los registros del usuario
     private suspend fun getAllTimeRecordsForUser(): List<TimeRecord> {
-        // Esta es una implementación simplificada.
-        // En un caso real, deberíamos tener una función en el DAO para obtener registros con filtros
-
         // Configurar fechas por defecto si no están establecidas
         val currentFilter = _filter.value
         val startDate = currentFilter.startDate?.toString() ?: LocalDate.now().withDayOfMonth(1).toString()

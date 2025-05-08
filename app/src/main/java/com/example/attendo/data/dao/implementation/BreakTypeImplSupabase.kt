@@ -1,3 +1,4 @@
+// Asegúrate de que tu implementación de BreakTypeDao tenga esta estructura:
 package com.example.attendo.data.dao.implementation
 
 import android.util.Log
@@ -12,7 +13,8 @@ class BreakTypeImplSupabase(
 
     override suspend fun getAllActiveBreakTypes(): List<BreakType> {
         return try {
-            client.postgrest
+            Log.d("BreakTypeDao", "Obteniendo tipos de pausa activos")
+            val result = client.postgrest
                 .from("break_types")
                 .select {
                     filter {
@@ -20,15 +22,23 @@ class BreakTypeImplSupabase(
                     }
                 }
                 .decodeList<BreakType>()
+
+            // Log para debug
+            Log.d("BreakTypeDao", "Tipos de pausa obtenidos: ${result.size}")
+            result.forEach {
+                Log.d("BreakTypeDao", "Pausa ID: ${it.breakId}, Desc: ${it.description}")
+            }
+
+            result
         } catch (e: Exception) {
-            Log.e("attendo", "Error obteniendo tipos de pausa activos: ${e.message}", e)
+            Log.e("BreakTypeDao", "Error obteniendo tipos de pausa activos: ${e.message}", e)
             emptyList()
         }
     }
 
     override suspend fun getBreakTypeById(breakId: Int): BreakType? {
         return try {
-            client.postgrest
+            val result = client.postgrest
                 .from("break_types")
                 .select {
                     filter {
@@ -36,10 +46,14 @@ class BreakTypeImplSupabase(
                     }
                 }
                 .decodeSingle<BreakType>()
+
+            // Log para debug
+            Log.d("BreakTypeDao", "Obtención de pausa por ID: ${breakId}, Desc: ${result.description}")
+
+            result
         } catch (e: Exception) {
-            Log.e("attendo", "Error obteniendo tipo de pausa: ${e.message}", e)
+            Log.e("BreakTypeDao", "Error obteniendo tipo de pausa con ID ${breakId}: ${e.message}", e)
             null
         }
     }
-
 }
