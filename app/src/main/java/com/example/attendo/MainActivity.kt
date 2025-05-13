@@ -25,12 +25,15 @@ import androidx.compose.runtime.*
 import androidx.navigation.compose.NavHost
 import com.example.attendo.data.model.auth.AuthUiState
 import com.example.attendo.data.model.user.UserState
+import com.example.attendo.ui.screen.dashboard.AdminDashboardScreen
 import com.example.attendo.ui.screen.dashboard.UserDashboardScreen
+import com.example.attendo.ui.screen.timerecord.AdminTimeRecordListScreen
 import com.example.attendo.ui.screen.timerecord.TimeRecordListScreen
 import com.example.attendo.ui.viewmodel.auth.login.LoginViewModel
 import com.example.attendo.ui.viewmodel.user.UserViewModel
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -133,27 +136,34 @@ fun AuthNavigation() {
                     }
 
                     is UserState.Admin -> {
-                        // TODO: Implementar AdminDashboardScreen
-                        // AdminDashboardScreen(
-                        //     user = userState.user,
-                        //     onLogout = {
-                        //         navController.navigate("login") {
-                        //             popUpTo("dashboard") { inclusive = true }
-                        //         }
-                        //     }
-                        // )
-
-                        // Temporalmente mostramos un mensaje
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                "Dashboard de Administrador - Pendiente de implementar",
-                                style = MaterialTheme.typography.titleLarge
-                            )
-                        }
+                        AdminDashboardScreen(
+                            user = (userState as UserState.Admin).user,
+                            onLogout = {
+                                userViewModel.logout {
+                                    navController.navigate("login") {
+                                        popUpTo("dashboard") { inclusive = true }
+                                    }
+                                }
+                            },
+                            onTimeRecordListClick = { user ->
+                                navController.navigate("adminTimeRecordList") {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            onAddManualTimeRecordClick = { user ->
+                                // Por ahora solo mostramos que se ha pulsado, implementaremos más adelante
+                                // navController.navigate("addManualTimeRecord/${user.userId}")
+                                // Podemos añadir un Toast o Log temporalmente
+                                android.widget.Toast.makeText(
+                                    navController.context,
+                                    "Función de añadir fichaje manual pendiente de implementar",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        )
                     }
+
 
                     is UserState.Inactive -> {
                         LaunchedEffect(Unit) {
@@ -185,9 +195,11 @@ fun AuthNavigation() {
                         is UserState.Regular -> {
                             showContent = true
                         }
+
                         is UserState.Loading -> {
                             // Seguimos esperando
                         }
+
                         else -> {
                             // Solo navegamos atrás si no está cargando y no es regular
                             if (userState !is UserState.Loading) {
@@ -210,6 +222,38 @@ fun AuthNavigation() {
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator()
+                    }
+                }
+            }
+
+            composable("adminTimeRecordList") {
+                val userViewModel = koinViewModel<UserViewModel>()
+                val userState by userViewModel.userState.collectAsState()
+
+                when (userState) {
+                    is UserState.Admin -> {
+                        val adminUser = (userState as UserState.Admin).user
+                        // Guardamos el usuario admin para usarlo durante la navegación
+                        // Esto evita que se pierda durante la transición
+                        val rememberedAdminUser = remember { adminUser }
+
+                        if (rememberedAdminUser != null) {
+                            AdminTimeRecordListScreen(
+                                adminUser = rememberedAdminUser,
+                                onBack = { navController.popBackStack() }
+                            )
+                        } else {
+                            // Si por alguna razón no tenemos el usuario, volvemos atrás
+                            LaunchedEffect(Unit) {
+                                navController.popBackStack()
+                            }
+                        }
+                    }
+                    else -> {
+                        // Si no es admin, redirigimos al dashboard
+                        LaunchedEffect(Unit) {
+                            navController.popBackStack()
+                        }
                     }
                 }
             }

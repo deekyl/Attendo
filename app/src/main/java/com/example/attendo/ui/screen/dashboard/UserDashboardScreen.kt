@@ -165,7 +165,7 @@ fun UserDashboardScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF212121))
             ) {
                 Text(
-                    "Consultar más fichajes",
+                    "Consultar mis fichajes",
                     color = Color.White,
                     style = MaterialTheme.typography.titleSmall
                 )

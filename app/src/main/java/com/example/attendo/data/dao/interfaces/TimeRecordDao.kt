@@ -7,4 +7,5 @@ interface TimeRecordDao {
     suspend fun getTimeRecordsByDay(userId: String, date: String): List<TimeRecord>
     suspend fun insertTimeRecord(record: TimeRecord): TimeRecord?
     suspend fun getTimeRecordsByDateRange(userId: String, startDate: String, endDate: String): List<TimeRecord>
+    suspend fun getAllTimeRecordsByDateRange(startDate: String, endDate: String): List<TimeRecord>
 }

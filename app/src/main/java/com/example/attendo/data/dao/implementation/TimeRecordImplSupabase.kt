@@ -96,4 +96,28 @@ class TimeRecordImplSupabase(
             emptyList()
         }
     }
+
+    override suspend fun getAllTimeRecordsByDateRange(
+        startDate: String,
+        endDate: String
+    ): List<TimeRecord> {
+        return try {
+            val startDateTime = "${startDate}T00:00:00"
+            val endDateTime = "${endDate}T23:59:59"
+
+            client.postgrest
+                .from("time_records")
+                .select {
+                    filter {
+                        gte("time", startDateTime)
+                        lte("time", endDateTime)
+                    }
+                    order("time", Order.DESCENDING)
+                }
+                .decodeList<TimeRecord>()
+        } catch (e: Exception) {
+            Log.e("attendo", "Error obteniendo todos los fichajes por rango de fechas: ${e.message}", e)
+            emptyList()
+        }
+    }
 }

@@ -6,4 +6,5 @@ interface UserDao {
     suspend fun getUserById(userId: String): User?
     suspend fun isUserActive(userId: String): Boolean
     suspend fun updateUser(user: User): Boolean
+    suspend fun getAllUsers(): List<User>
 }

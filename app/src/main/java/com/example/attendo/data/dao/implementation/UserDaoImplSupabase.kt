@@ -39,4 +39,28 @@ class UserDaoImplSupabase(
     override suspend fun updateUser(user: User): Boolean {
         TODO("Not yet implemented")
     }
+
+    override suspend fun getAllUsers(): List<User> {
+        return try {
+            // Usamos withContext para asegurarnos de manejar la cancelación correctamente
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                client.postgrest
+                    .from("users")
+                    .select {
+                        filter {
+                            eq("is_active", true)
+                        }
+                        order("full_name", io.github.jan.supabase.postgrest.query.Order.ASCENDING)
+                    }
+                    .decodeList<User>()
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) {
+                // Propagamos la excepción de cancelación para manejarla adecuadamente
+                throw e
+            }
+            Log.e("attendo", "Error getting all users: ${e.message}", e)
+            emptyList()
+        }
+    }
 }
