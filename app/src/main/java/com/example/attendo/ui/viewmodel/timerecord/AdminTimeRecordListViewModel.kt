@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.attendo.data.dao.interfaces.BreakTypeDao
 import com.example.attendo.data.dao.interfaces.TimeRecordDao
 import com.example.attendo.data.dao.interfaces.UserDao
+import com.example.attendo.data.model.attendance.BreakType
 import com.example.attendo.data.model.attendance.TimeRecord
 import com.example.attendo.data.model.attendance.TimeRecordFilter
 import com.example.attendo.data.model.user.User
@@ -42,24 +43,27 @@ class AdminTimeRecordListViewModel(
     private val _selectedUser = MutableStateFlow<User?>(null)
     val selectedUser: StateFlow<User?> = _selectedUser.asStateFlow()
 
+    private val _breakTypesMap = MutableStateFlow<Map<Int, BreakType>>(emptyMap())
+    val breakTypesMap: StateFlow<Map<Int, BreakType>> = _breakTypesMap.asStateFlow()
+
     // Caché de usuarios para mostrar nombres
     private val userCache = mutableMapOf<String, User>()
 
     // Inicialización con el admin
     suspend fun initialize(adminUser: User) {
         try {
-            // Guardamos el usuario admin en la caché primero
-            userCache[adminUser.userId] = adminUser
+            // Cargamos primero los tipos de pausa y otros datos que no involucren al usuario
+            loadBreakTypes()
 
-            // Establecemos el usuario admin como seleccionado
+            // Guardamos el usuario admin en la caché y actualizamos el estado
+            userCache[adminUser.userId] = adminUser
             _selectedUser.value = adminUser
             _filter.value = _filter.value.copy(userId = adminUser.userId)
 
-            // Usamos coroutines separadas para que si una falla, las otras puedan continuar
+            // Finalmente cargamos lo más "pesado": usuarios y registros
             viewModelScope.launch { loadUsers() }
             viewModelScope.launch { loadTimeRecords() }
         } catch (e: Exception) {
-            // Manejamos cualquier excepción para evitar que se propague
             Log.e("Attendo", "Error en initialize: ${e.message}", e)
         }
     }
@@ -120,9 +124,9 @@ class AdminTimeRecordListViewModel(
             } catch (e: Exception) {
                 // Capturamos también CancellationException
                 if (e is kotlinx.coroutines.CancellationException) {
-                    Log.d("AdminTimeRecordListVM", "Carga de registros cancelada", e)
+                    Log.d("Attendo", "Carga de registros cancelada", e)
                 } else {
-                    Log.e("AdminTimeRecordListVM", "Error cargando registros: ${e.message}", e)
+                    Log.e("Attendo", "Error cargando registros: ${e.message}", e)
                 }
                 _filteredRecords.value = emptyList()
             } finally {
@@ -144,7 +148,7 @@ class AdminTimeRecordListViewModel(
         return try {
             timeRecordDao.getTimeRecordsByDateRange(userId, startDate, endDate)
         } catch (e: Exception) {
-            Log.e("AdminTimeRecordListVM", "Error obteniendo registros: ${e.message}", e)
+            Log.e("Attendo", "Error obteniendo registros: ${e.message}", e)
             emptyList()
         }
     }
@@ -209,6 +213,24 @@ class AdminTimeRecordListViewModel(
             } catch (e2: DateTimeParseException) {
                 // Formato por defecto
                 LocalDateTime.parse(dateTimeStr)
+            }
+        }
+    }
+
+    private fun loadBreakTypes() {
+        viewModelScope.launch {
+            try {
+                Log.d("Attendo", "Cargando tipos de pausa...")
+                val breakTypes = breakTypeDao.getAllActiveBreakTypes()
+
+                _breakTypesMap.value = breakTypes.associateBy { it.breakId }
+
+                Log.d("Attendo", "Tipos de pausa cargados: ${breakTypes.size}")
+                breakTypes.forEach {
+                    Log.d("Attendo", "Break ID: ${it.breakId}, Desc: ${it.description}")
+                }
+            } catch (e: Exception) {
+                Log.e("Attendo", "Error cargando tipos de pausa: ${e.message}", e)
             }
         }
     }

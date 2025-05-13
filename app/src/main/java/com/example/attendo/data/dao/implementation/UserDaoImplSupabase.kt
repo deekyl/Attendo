@@ -5,21 +5,30 @@ import com.example.attendo.data.dao.interfaces.UserDao
 import com.example.attendo.data.model.user.User
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlin.coroutines.cancellation.CancellationException
 
 class UserDaoImplSupabase(
     private val client: SupabaseClient
 ) : UserDao {
     override suspend fun getUserById(userId: String): User? {
         return try {
-            client.postgrest
-                .from("users")
-                .select {
-                    filter {
-                        eq("user_id", userId)
+            withContext(Dispatchers.IO) {
+                client.postgrest
+                    .from("users")
+                    .select {
+                        filter {
+                            eq("user_id", userId)
+                        }
                     }
-                }
-                .decodeSingle<User>()
+                    .decodeSingle<User>()
+            }
         } catch (e: Exception) {
+            if (e is CancellationException) {
+                // Propagar explícitamente para manejo adecuado
+                throw e
+            }
             Log.e("attendo", "Error getting user: ${e.message}", e)
             null
         }

@@ -233,24 +233,33 @@ fun AuthNavigation() {
                 when (userState) {
                     is UserState.Admin -> {
                         val adminUser = (userState as UserState.Admin).user
-                        // Guardamos el usuario admin para usarlo durante la navegación
-                        // Esto evita que se pierda durante la transición
-                        val rememberedAdminUser = remember { adminUser }
 
-                        if (rememberedAdminUser != null) {
+                        // Asegurar que tenemos un usuario válido antes de continuar
+                        if (adminUser != null) {
+                            val rememberedUser = remember { adminUser }
+
                             AdminTimeRecordListScreen(
-                                adminUser = rememberedAdminUser,
+                                adminUser = rememberedUser,
                                 onBack = { navController.popBackStack() }
                             )
                         } else {
-                            // Si por alguna razón no tenemos el usuario, volvemos atrás
-                            LaunchedEffect(Unit) {
-                                navController.popBackStack()
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
                             }
                         }
                     }
+                    is UserState.Loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
                     else -> {
-                        // Si no es admin, redirigimos al dashboard
                         LaunchedEffect(Unit) {
                             navController.popBackStack()
                         }

@@ -48,12 +48,12 @@ val appModule = module {
         )
     }
 
-    viewModel {
+    viewModel { parameters ->
         AdminTimeRecordListViewModel(
             timeRecordDao = get(),
             breakTypeDao = get(),
             userDao = get(),
-            adminUserId = get()
+            adminUserId = parameters.get()
         )
     }
 }

@@ -451,7 +451,8 @@ fun ActionTypeChip(
 fun SummaryCard(
     recordCount: Int,
     dateRange: String,
-    actionType: TimeRecordFilter.ActionType
+    actionType: TimeRecordFilter.ActionType,
+    userName: String = ""
 ) {
     Card(
         modifier = Modifier
