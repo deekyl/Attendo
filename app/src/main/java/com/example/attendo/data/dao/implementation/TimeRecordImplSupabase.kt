@@ -120,4 +120,29 @@ class TimeRecordImplSupabase(
             emptyList()
         }
     }
+
+    override suspend fun updateTimeRecord(record: TimeRecord): TimeRecord? {
+        return try {
+            client.postgrest
+                .from("time_records")
+                .update(
+                    {
+                        set("time", record.time)
+                        set("is_entry", record.isEntry)
+                        set("break_type_id", record.breakTypeId)
+                        set("location", record.location)
+                        set("is_manual", true)
+                    }
+                ) {
+                    filter {
+                        eq("record_id", record.recordId!!)
+                    }
+                    select()
+                }
+                .decodeSingle<TimeRecord>()
+        } catch (e: Exception) {
+            Log.e("attendo", "Error al actualizar fichaje: ${e.message}", e)
+            null
+        }
+    }
 }

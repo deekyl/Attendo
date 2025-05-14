@@ -243,4 +243,19 @@ class AdminTimeRecordListViewModel(
             "Usuario"
         }
     }
+
+    // Modificar un registro de fichaje
+    suspend fun updateTimeRecord(record: TimeRecord) {
+        try {
+            _isLoading.value = true
+            val updatedRecord = timeRecordDao.updateTimeRecord(record)
+            if (updatedRecord != null) {
+                loadTimeRecords()
+            }
+        } catch (e: Exception) {
+            Log.e("Attendo", "Error actualizando registro: ${e.message}", e)
+        } finally {
+            _isLoading.value = false
+        }
+    }
 }

@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.example.attendo.data.model.attendance.BreakType
 import com.example.attendo.data.model.attendance.TimeRecord
 import com.example.attendo.data.model.attendance.TimeRecordFilter
@@ -34,6 +35,8 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,7 +46,7 @@ fun AdminTimeRecordListScreen(
     onBack: () -> Unit,
     viewModel: AdminTimeRecordListViewModel = koinViewModel { parametersOf(adminUser.userId) }
 ) {
-    Log.d("AdminTimeRecordListScreen", "Iniciando pantalla con usuario admin: ${adminUser.userId}")
+    Log.d("Attendo", "Iniciando pantalla con usuario admin: ${adminUser.userId}")
 
     // Estados del ViewModel
     val timeRecords by viewModel.filteredRecords.collectAsState()
@@ -66,6 +69,8 @@ fun AdminTimeRecordListScreen(
     var filtersExpanded by remember { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
+
+    var selectedRecord by remember { mutableStateOf<TimeRecord?>(null) }
 
     Scaffold(
         topBar = {
@@ -171,9 +176,25 @@ fun AdminTimeRecordListScreen(
                                 record = record,
                                 getBreakTypeDescription = { breakId ->
                                     breakTypesMap[breakId]?.description ?: "Pausa $breakId"
-                                }
+                                },
+                                onEditClick = { selectedRecord = it }
                             )
                         }
+                    }
+                    selectedRecord?.let { record ->
+                        EditTimeRecordDialog(
+                            record = record,
+                            onDismiss = { selectedRecord = null },
+                            onSave = { updatedRecord ->
+                                coroutineScope.launch {
+                                    viewModel.updateTimeRecord(updatedRecord)
+                                    selectedRecord = null
+                                }
+                            },
+                            getBreakTypeDescription = { breakId ->
+                                breakTypesMap[breakId]?.description ?: "Pausa $breakId"
+                            }
+                        )
                     }
                 }
             }
@@ -347,7 +368,8 @@ fun AdminFilterPanel(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = filterState.startDate?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) ?: "Seleccionar",
+                                text = filterState.startDate?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                                    ?: "Seleccionar",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -384,7 +406,8 @@ fun AdminFilterPanel(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = filterState.endDate?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) ?: "Seleccionar",
+                                text = filterState.endDate?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                                    ?: "Seleccionar",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -508,305 +531,568 @@ fun AdminFilterPanel(
     }
 }
 
-//@Composable
-//fun TimeRecordCard(
-//    record: TimeRecord,
-//    getBreakTypeDescription: (Int) -> String
-//) {
-//    val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-//    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-//
-//    val (dateStr, timeStr) = try {
-//        val dateTime = java.time.LocalDateTime.parse(record.time, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-//        Pair(dateTime.format(dateFormatter), dateTime.format(timeFormatter))
-//    } catch (e: Exception) {
-//        try {
-//            val dateTime = java.time.LocalDateTime.parse(record.time, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-//            Pair(dateTime.format(dateFormatter), dateTime.format(timeFormatter))
-//        } catch (e2: Exception) {
-//            Pair(record.time, "")
-//        }
-//    }
-//
-//    // Definir iconos, colores y textos según el tipo de registro
-//    data class RecordStyle(
-//        val icon: ImageVector,
-//        val backgroundColor: Color,
-//        val textColor: Color,
-//        val actionText: String,
-//        val iconTint: Color
-//    )
-//
-//    val recordStyle = when {
-//        // Entrada normal
-//        record.isEntry && record.breakTypeId == null ->
-//            RecordStyle(
-//                icon = Icons.Default.Login,
-//                backgroundColor = Color(0xFFE8F5E9), // Verde claro
-//                textColor = Color(0xFF1B5E20), // Verde oscuro
-//                actionText = "Entrada",
-//                iconTint = Color(0xFF4CAF50) // Verde
-//            )
-//
-//        // Salida normal
-//        !record.isEntry && record.breakTypeId == null ->
-//            RecordStyle(
-//                icon = Icons.Default.Logout,
-//                backgroundColor = Color(0xFFFFEBEE), // Rojo claro
-//                textColor = Color(0xFFB71C1C), // Rojo oscuro
-//                actionText = "Salida",
-//                iconTint = Color(0xFFF44336) // Rojo
-//            )
-//
-//        // Inicio de pausa (con motivo)
-//        !record.isEntry && record.breakTypeId != null ->
-//            RecordStyle(
-//                icon = Icons.Default.Coffee,
-//                backgroundColor = Color(0xFFFFF8E1), // Amarillo claro
-//                textColor = Color(0xFFF57F17), // Amarillo oscuro
-//                actionText = "Pausa",
-//                iconTint = Color(0xFFFF9800) // Naranja
-//            )
-//
-//        // Fin de pausa (con motivo)
-//        record.isEntry && record.breakTypeId != null ->
-//            RecordStyle(
-//                icon = Icons.Default.WorkOutline,
-//                backgroundColor = Color(0xFFE3F2FD), // Azul claro
-//                textColor = Color(0xFF0D47A1), // Azul oscuro
-//                actionText = "Fin Pausa",
-//                iconTint = Color(0xFF2196F3) // Azul
-//            )
-//
-//        // Caso desconocido
-//        else ->
-//            RecordStyle(
-//                icon = Icons.Default.Info,
-//                backgroundColor = Color(0xFFF5F5F5), // Gris claro
-//                textColor = Color(0xFF424242), // Gris oscuro
-//                actionText = "Desconocido",
-//                iconTint = Color.Gray
-//            )
-//    }
-//
-//    // Si hay un break_type_id, obtener la descripción
-//    val breakDescription = if (record.breakTypeId != null) {
-//        getBreakTypeDescription(record.breakTypeId)
-//    } else null
-//
-//    Card(
-//        modifier = Modifier
-//            .fillMaxWidth()
-//            .shadow(
-//                elevation = 2.dp,
-//                shape = RoundedCornerShape(16.dp)
-//            ),
-//        colors = CardDefaults.cardColors(
-//            containerColor = recordStyle.backgroundColor
-//        ),
-//        shape = RoundedCornerShape(16.dp)
-//    ) {
-//        Row(
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .padding(16.dp),
-//            verticalAlignment = Alignment.CenterVertically
-//        ) {
-//            // Icono circular
-//            Box(
-//                modifier = Modifier
-//                    .size(50.dp)
-//                    .background(
-//                        color = recordStyle.iconTint.copy(alpha = 0.1f),
-//                        shape = CircleShape
-//                    )
-//                    .border(
-//                        width = 0.5.dp,
-//                        color = recordStyle.iconTint.copy(alpha = 0.5f),
-//                        shape = CircleShape
-//                    ),
-//                contentAlignment = Alignment.Center
-//            ) {
-//                Icon(
-//                    imageVector = recordStyle.icon,
-//                    contentDescription = recordStyle.actionText,
-//                    tint = recordStyle.iconTint,
-//                    modifier = Modifier.size(24.dp)
-//                )
-//            }
-//
-//            Spacer(modifier = Modifier.width(16.dp))
-//
-//            // Información del registro
-//            Column(
-//                modifier = Modifier.weight(1f)
-//            ) {
-//                // Título con la descripción de la pausa, si existe
-//                Row(
-//                    verticalAlignment = Alignment.CenterVertically,
-//                    modifier = Modifier.fillMaxWidth()
-//                ) {
-//                    if (record.breakTypeId != null) {
-//                        // Si es una pausa, mostrar "Pausa: [Descripción]"
-//                        Text(
-//                            text = "Pausa: ",
-//                            style = MaterialTheme.typography.titleMedium,
-//                            color = recordStyle.textColor,
-//                            fontWeight = FontWeight.Bold
-//                        )
-//                        // Descripción de la pausa con texto recortado si es muy largo
-//                        Text(
-//                            text = breakDescription ?: "",
-//                            style = MaterialTheme.typography.titleMedium,
-//                            color = recordStyle.textColor,
-//                            fontWeight = FontWeight.Bold,
-//                            maxLines = 1,
-//                            overflow = TextOverflow.Ellipsis,
-//                            modifier = Modifier.weight(1f)
-//                        )
-//                    } else {
-//                        // Si no es pausa, mostrar solo el tipo de acción
-//                        Text(
-//                            text = recordStyle.actionText,
-//                            style = MaterialTheme.typography.titleMedium,
-//                            color = recordStyle.textColor,
-//                            fontWeight = FontWeight.Bold
-//                        )
-//                    }
-//                }
-//
-//                Spacer(modifier = Modifier.height(4.dp))
-//
-//                Row(
-//                    verticalAlignment = Alignment.CenterVertically
-//                ) {
-//                    Icon(
-//                        imageVector = Icons.Default.CalendarToday,
-//                        contentDescription = null,
-//                        tint = recordStyle.textColor.copy(alpha = 0.6f),
-//                        modifier = Modifier.size(14.dp)
-//                    )
-//                    Spacer(modifier = Modifier.width(4.dp))
-//                    Text(
-//                        text = dateStr,
-//                        style = MaterialTheme.typography.bodyMedium,
-//                        color = recordStyle.textColor.copy(alpha = 0.8f)
-//                    )
-//                    Spacer(modifier = Modifier.width(16.dp))
-//                    Icon(
-//                        imageVector = Icons.Default.Schedule,
-//                        contentDescription = null,
-//                        tint = recordStyle.textColor.copy(alpha = 0.6f),
-//                        modifier = Modifier.size(14.dp)
-//                    )
-//                    Spacer(modifier = Modifier.width(4.dp))
-//                    Text(
-//                        text = timeStr,
-//                        style = MaterialTheme.typography.bodyMedium,
-//                        color = recordStyle.textColor.copy(alpha = 0.8f)
-//                    )
-//                }
-//
-//                if (record.location != null) {
-//                    Spacer(modifier = Modifier.height(4.dp))
-//                    Row(
-//                        verticalAlignment = Alignment.CenterVertically
-//                    ) {
-//                        Icon(
-//                            imageVector = Icons.Default.LocationOn,
-//                            contentDescription = null,
-//                            tint = recordStyle.textColor.copy(alpha = 0.6f),
-//                            modifier = Modifier.size(14.dp)
-//                        )
-//                        Spacer(modifier = Modifier.width(4.dp))
-//                        Text(
-//                            text = record.location,
-//                            style = MaterialTheme.typography.bodySmall,
-//                            color = recordStyle.textColor.copy(alpha = 0.7f)
-//                        )
-//                    }
-//                }
-//
-//                if (record.isManual) {
-//                    Spacer(modifier = Modifier.height(4.dp))
-//                    Row(
-//                        verticalAlignment = Alignment.CenterVertically
-//                    ) {
-//                        Icon(
-//                            imageVector = Icons.Default.Edit,
-//                            contentDescription = null,
-//                            tint = Color(0xFFFF5722).copy(alpha = 0.8f),
-//                            modifier = Modifier.size(14.dp)
-//                        )
-//                        Spacer(modifier = Modifier.width(4.dp))
-//                        Text(
-//                            text = "Registro manual",
-//                            style = MaterialTheme.typography.bodySmall,
-//                            color = Color(0xFFFF5722).copy(alpha = 0.8f),
-//                            fontWeight = FontWeight.Medium
-//                        )
-//                    }
-//                }
-//            }
-//        }
-//    }
-//    @Composable
-//    fun SummaryCard(
-//        recordCount: Int,
-//        dateRange: String,
-//        actionType: TimeRecordFilter.ActionType,
-//        userName: String // Añadido el parámetro userName
-//    ) {
-//        Card(
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .padding(16.dp),
-//            colors = CardDefaults.cardColors(
-//                containerColor = MaterialTheme.colorScheme.primaryContainer
-//            )
-//        ) {
-//            Row(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .padding(16.dp),
-//                verticalAlignment = Alignment.CenterVertically
-//            ) {
-//                Icon(
-//                    imageVector = Icons.Default.Info,
-//                    contentDescription = null,
-//                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-//                )
-//                Spacer(modifier = Modifier.width(16.dp))
-//                Column {
-//                    Text(
-//                        text = "$recordCount registros encontrados",
-//                        style = MaterialTheme.typography.titleMedium,
-//                        color = MaterialTheme.colorScheme.onPrimaryContainer
-//                    )
-//                    Text(
-//                        text = "Usuario: $userName",
-//                        style = MaterialTheme.typography.bodyMedium,
-//                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-//                    )
-//                    Text(
-//                        text = "Periodo: $dateRange",
-//                        style = MaterialTheme.typography.bodyMedium,
-//                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-//                    )
-//                    val actionTypeText = when (actionType) {
-//                        TimeRecordFilter.ActionType.ALL -> "Todos los tipos"
-//                        TimeRecordFilter.ActionType.ENTRY -> "Solo entradas"
-//                        TimeRecordFilter.ActionType.EXIT -> "Solo salidas"
-//                        TimeRecordFilter.ActionType.BREAK -> "Solo pausas"
-//                    }
-//                    Text(
-//                        text = "Tipo: $actionTypeText",
-//                        style = MaterialTheme.typography.bodyMedium,
-//                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-//                    )
-//                }
-//            }
-//        }
-//    }
-//
-//}
+@Composable
+fun TimeRecordCard(
+    record: TimeRecord,
+    getBreakTypeDescription: (Int) -> String = { "Pausa: $it" }, // Función para obtener descripción de la pausa
+    onEditClick: (TimeRecord) -> Unit
+) {
+    val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+    val (dateStr, timeStr) = try {
+        val dateTime =
+            java.time.LocalDateTime.parse(record.time, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        Pair(dateTime.format(dateFormatter), dateTime.format(timeFormatter))
+    } catch (e: Exception) {
+        try {
+            val dateTime =
+                java.time.LocalDateTime.parse(record.time, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            Pair(dateTime.format(dateFormatter), dateTime.format(timeFormatter))
+        } catch (e2: Exception) {
+            Pair(record.time, "")
+        }
+    }
+
+    // Definir iconos, colores y textos según el tipo de registro
+    // Crear un data class para mantener los 5 valores que necesitamos
+    data class RecordStyle(
+        val icon: ImageVector,
+        val backgroundColor: Color,
+        val textColor: Color,
+        val actionText: String,
+        val iconTint: Color
+    )
+
+    val recordStyle = when {
+        // Entrada normal
+        record.isEntry && record.breakTypeId == null ->
+            RecordStyle(
+                icon = Icons.Default.Login,
+                backgroundColor = Color(0xFFE8F5E9), // Verde claro
+                textColor = Color(0xFF1B5E20), // Verde oscuro
+                actionText = "Entrada",
+                iconTint = Color(0xFF4CAF50) // Verde
+            )
+
+        // Salida normal
+        !record.isEntry && record.breakTypeId == null ->
+            RecordStyle(
+                icon = Icons.Default.Logout,
+                backgroundColor = Color(0xFFFFEBEE), // Rojo claro
+                textColor = Color(0xFFB71C1C), // Rojo oscuro
+                actionText = "Salida",
+                iconTint = Color(0xFFF44336) // Rojo
+            )
+
+        // Inicio de pausa (con motivo)
+        !record.isEntry && record.breakTypeId != null ->
+            RecordStyle(
+                icon = Icons.Default.Coffee,
+                backgroundColor = Color(0xFFFFF8E1), // Amarillo claro
+                textColor = Color(0xFFF57F17), // Amarillo oscuro
+                actionText = "Pausa",
+                iconTint = Color(0xFFFF9800) // Naranja
+            )
+
+        // Fin de pausa (con motivo)
+        record.isEntry && record.breakTypeId != null ->
+            RecordStyle(
+                icon = Icons.Default.WorkOutline,
+                backgroundColor = Color(0xFFE3F2FD), // Azul claro
+                textColor = Color(0xFF0D47A1), // Azul oscuro
+                actionText = "Fin Pausa",
+                iconTint = Color(0xFF2196F3) // Azul
+            )
+
+        // Caso desconocido
+        else ->
+            RecordStyle(
+                icon = Icons.Default.Info,
+                backgroundColor = Color(0xFFF5F5F5), // Gris claro
+                textColor = Color(0xFF424242), // Gris oscuro
+                actionText = "Desconocido",
+                iconTint = Color.Gray
+            )
+    }
+
+    val icon = recordStyle.icon
+    val backgroundColor = recordStyle.backgroundColor
+    val textColor = recordStyle.textColor
+    val actionText = recordStyle.actionText
+    val iconTint = recordStyle.iconTint
+
+    // Si hay un break_type_id, obtener la descripción
+    val breakDescription = if (record.breakTypeId != null) {
+        getBreakTypeDescription(record.breakTypeId)
+    } else null
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 2.dp,
+                shape = RoundedCornerShape(16.dp)
+            )
+            .clickable { onEditClick(record) },
+        colors = CardDefaults.cardColors(
+            containerColor = backgroundColor
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Icono circular
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .background(
+                        color = iconTint.copy(alpha = 0.1f),
+                        shape = CircleShape
+                    )
+                    .border(
+                        width = 0.5.dp,
+                        color = iconTint.copy(alpha = 0.5f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = actionText,
+                    tint = iconTint,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Información del registro
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                // Título con la descripción de la pausa, si existe
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (record.breakTypeId != null) {
+                        // Si es una pausa, mostrar "Pausa: [Descripción]"
+                        Text(
+                            text = "Pausa: ",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = textColor,
+                            fontWeight = FontWeight.Bold
+                        )
+                        // Descripción de la pausa con texto recortado si es muy largo
+                        Text(
+                            text = breakDescription ?: "",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = textColor,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        // Si no es pausa, mostrar solo el tipo de acción
+                        Text(
+                            text = actionText,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = textColor,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday,
+                        contentDescription = null,
+                        tint = textColor.copy(alpha = 0.6f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = dateStr,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = textColor.copy(alpha = 0.8f)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = textColor.copy(alpha = 0.6f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = timeStr,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = textColor.copy(alpha = 0.8f)
+                    )
+                }
+
+                if (record.location != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = textColor.copy(alpha = 0.6f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = record.location,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = textColor.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+
+                if (record.isManual) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = null,
+                            tint = Color(0xFFFF5722).copy(alpha = 0.8f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Registro manual",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFFFF5722).copy(alpha = 0.8f),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditTimeRecordDialog(
+    record: TimeRecord,
+    onDismiss: () -> Unit,
+    onSave: (TimeRecord) -> Unit,
+    getBreakTypeDescription: (Int) -> String
+) {
+    var editedTime by remember { mutableStateOf(record.time) }
+
+    // Para manejar fecha y hora separadas de forma amigable
+    var dateTime = try {
+        LocalDateTime.parse(record.time, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+    } catch (e: Exception) {
+        try {
+            LocalDateTime.parse(record.time, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        } catch (e2: Exception) {
+            LocalDateTime.now() // Valor por defecto
+        }
+    }
+
+    var selectedDate by remember { mutableStateOf(dateTime.toLocalDate()) }
+    var selectedTime by remember { mutableStateOf(dateTime.toLocalTime()) }
+
+    // Estados para los pickers
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+
+    Dialog(
+        onDismissRequest = onDismiss
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            ) {
+                // Título
+                Text(
+                    text = "Editar registro",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Tipo de acción (solo mostrar, no editable)
+                val actionText = when {
+                    record.isEntry && record.breakTypeId == null -> "Entrada"
+                    !record.isEntry && record.breakTypeId == null -> "Salida"
+                    !record.isEntry && record.breakTypeId != null ->
+                        "Inicio de pausa: ${getBreakTypeDescription(record.breakTypeId)}"
+
+                    record.isEntry && record.breakTypeId != null -> "Fin de pausa"
+                    else -> "Desconocido"
+                }
+
+                OutlinedTextField(
+                    value = actionText,
+                    onValueChange = { },
+                    label = { Text("Tipo de registro") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = false,
+                    readOnly = true
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Selector de fecha
+                OutlinedCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showDatePicker = true }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "Fecha",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = selectedDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Selector de hora
+                OutlinedCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showTimePicker = true }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "Hora",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = selectedTime.format(DateTimeFormatter.ofPattern("HH:mm:ss")),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Campo de ubicación
+                var location by remember { mutableStateOf(record.location ?: "") }
+                OutlinedTextField(
+                    value = location,
+                    onValueChange = { location = it },
+                    label = { Text("Ubicación") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Botones
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = onDismiss
+                    ) {
+                        Text("Cancelar")
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = {
+                            // Combinar fecha y hora seleccionadas
+                            val newDateTime = LocalDateTime.of(selectedDate, selectedTime)
+                            val formattedDateTime =
+                                newDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+
+                            // Crear el objeto TimeRecord actualizado
+                            val updatedRecord = record.copy(
+                                time = formattedDateTime,
+                                location = location,
+                                isManual = true
+                            )
+
+                            onSave(updatedRecord)
+                            onDismiss()
+                        }
+                    ) {
+                        Text("Guardar")
+                    }
+                }
+            }
+        }
+    }
+
+    // DatePicker
+    if (showDatePicker) {
+        ShowDatePicker(
+            initialDate = selectedDate,
+            title = "Seleccionar fecha",
+            onDateSelected = { newDate ->
+                selectedDate = newDate
+                showDatePicker = false
+            },
+            onDismiss = { showDatePicker = false }
+        )
+    }
+
+    // TimePicker
+    if (showTimePicker) {
+        TimePickerDialog(
+            onDismiss = { showTimePicker = false },
+            onConfirm = { hour, minute ->
+                selectedTime = LocalTime.of(hour, minute, 0)
+                showTimePicker = false
+            }
+        )
+    }
+}
+
+@Composable
+fun TimePickerDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (hour: Int, minute: Int) -> Unit
+) {
+    var selectedHour by remember { mutableStateOf(12) }
+    var selectedMinute by remember { mutableStateOf(0) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.padding(16.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Seleccionar hora",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(8.dp)
+                )
+
+                // Selector de hora
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Horas
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        IconButton(onClick = {
+                            if (selectedHour < 23) selectedHour++ else selectedHour = 0
+                        }) {
+                            Icon(Icons.Default.KeyboardArrowUp, null)
+                        }
+                        Text(
+                            text = String.format("%02d", selectedHour),
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                        IconButton(onClick = {
+                            if (selectedHour > 0) selectedHour-- else selectedHour = 23
+                        }) {
+                            Icon(Icons.Default.KeyboardArrowDown, null)
+                        }
+                    }
+
+                    Text(
+                        text = ":",
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+
+                    // Minutos
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        IconButton(onClick = {
+                            if (selectedMinute < 59) selectedMinute++ else selectedMinute = 0
+                        }) {
+                            Icon(Icons.Default.KeyboardArrowUp, null)
+                        }
+                        Text(
+                            text = String.format("%02d", selectedMinute),
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                        IconButton(onClick = {
+                            if (selectedMinute > 0) selectedMinute-- else selectedMinute = 59
+                        }) {
+                            Icon(Icons.Default.KeyboardArrowDown, null)
+                        }
+                    }
+                }
+
+                // Botones
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancelar")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = {
+                        onConfirm(selectedHour, selectedMinute)
+                    }) {
+                        Text("Confirmar")
+                    }
+                }
+            }
+        }
+    }
+}
