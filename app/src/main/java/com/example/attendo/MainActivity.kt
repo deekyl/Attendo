@@ -28,6 +28,7 @@ import com.example.attendo.data.model.user.UserState
 import com.example.attendo.ui.screen.dashboard.AdminDashboardScreen
 import com.example.attendo.ui.screen.dashboard.UserDashboardScreen
 import com.example.attendo.ui.screen.timerecord.AdminTimeRecordListScreen
+import com.example.attendo.ui.screen.timerecord.ManualTimeRecordScreen
 import com.example.attendo.ui.screen.timerecord.TimeRecordListScreen
 import com.example.attendo.ui.viewmodel.auth.login.LoginViewModel
 import com.example.attendo.ui.viewmodel.user.UserViewModel
@@ -152,14 +153,10 @@ fun AuthNavigation() {
                                 }
                             },
                             onAddManualTimeRecordClick = { user ->
-                                // Por ahora solo mostramos que se ha pulsado, implementaremos más adelante
-                                // navController.navigate("addManualTimeRecord/${user.userId}")
-                                // Podemos añadir un Toast o Log temporalmente
-                                android.widget.Toast.makeText(
-                                    navController.context,
-                                    "Función de añadir fichaje manual pendiente de implementar",
-                                    android.widget.Toast.LENGTH_SHORT
-                                ).show()
+                                navController.navigate("addManualTimeRecord/${user.userId}") {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             }
                         )
                     }
@@ -251,6 +248,7 @@ fun AuthNavigation() {
                             }
                         }
                     }
+
                     is UserState.Loading -> {
                         Box(
                             modifier = Modifier.fillMaxSize(),
@@ -259,6 +257,7 @@ fun AuthNavigation() {
                             CircularProgressIndicator()
                         }
                     }
+
                     else -> {
                         LaunchedEffect(Unit) {
                             navController.popBackStack()
@@ -266,6 +265,49 @@ fun AuthNavigation() {
                     }
                 }
             }
+
+            composable("addManualTimeRecord/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
+                val userViewModel = koinViewModel<UserViewModel>()
+                val userState by userViewModel.userState.collectAsState()
+
+                when (userState) {
+                    is UserState.Admin -> {
+                        val adminUser = (userState as UserState.Admin).user
+
+                        // Asegurar que tenemos un usuario válido antes de continuar
+                        if (adminUser != null) {
+                            ManualTimeRecordScreen(
+                                adminUser = adminUser,
+                                onBack = { navController.popBackStack() }
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                    }
+
+                    is UserState.Loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    else -> {
+                        LaunchedEffect(Unit) {
+                            navController.popBackStack()
+                        }
+                    }
+                }
+            }
+
         }
     }
 }

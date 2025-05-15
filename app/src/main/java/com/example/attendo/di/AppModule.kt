@@ -15,6 +15,7 @@ import org.koin.dsl.module
 import com.example.attendo.data.dao.implementation.BreakTypeImplSupabase
 import com.example.attendo.data.dao.interfaces.BreakTypeDao
 import com.example.attendo.ui.viewmodel.timerecord.AdminTimeRecordListViewModel
+import com.example.attendo.ui.viewmodel.timerecord.ManualTimeRecordViewModel
 import com.example.attendo.ui.viewmodel.timerecord.UserTimeRecordListViewModel
 import io.ktor.http.parameters
 import org.koin.core.parameter.parametersOf
@@ -50,6 +51,15 @@ val appModule = module {
 
     viewModel { parameters ->
         AdminTimeRecordListViewModel(
+            timeRecordDao = get(),
+            breakTypeDao = get(),
+            userDao = get(),
+            adminUserId = parameters.get()
+        )
+    }
+
+    viewModel { parameters ->
+        ManualTimeRecordViewModel(
             timeRecordDao = get(),
             breakTypeDao = get(),
             userDao = get(),
