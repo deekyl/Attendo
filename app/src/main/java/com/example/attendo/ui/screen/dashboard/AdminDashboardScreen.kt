@@ -4,8 +4,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,8 +33,10 @@ fun AdminDashboardScreen(
     onLogout: () -> Unit,
     onTimeRecordListClick: (User) -> Unit,
     onAddManualTimeRecordClick: (User) -> Unit,
+    onManageBreakTypesClick: () -> Unit,
     timeRecordViewModel: TimeRecordViewModel = koinViewModel { parametersOf(user.userId) }
 ) {
+    var showMenu by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val timeRecordState by timeRecordViewModel.timeRecordState.collectAsState()
     val todayRecords by timeRecordViewModel.todayRecords.collectAsState()
@@ -42,12 +47,57 @@ fun AdminDashboardScreen(
             TopAppBar(
                 title = { Text("Attendo - Admin") },
                 actions = {
-                    IconButton(onClick = onLogout) {
-                        Icon(
-                            imageVector = Icons.Default.ExitToApp,
-                            contentDescription = "Cerrar sesión"
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Menú opciones"
+                            )
+                        }
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Gestionar tipos de pausa") },
+                            onClick = {
+                                showMenu = false
+                                onManageBreakTypesClick()
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.List,
+                                    contentDescription = null
+                                )
+                            }
                         )
                     }
+                    DropdownMenuItem(
+                        text = { Text("Gestionar usuarios") },
+                        onClick = { showMenu = false },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.People,
+                                contentDescription = null
+                            )
+                        },
+                        enabled = false // BORRARE
+                    )
+                    HorizontalDivider()
+                    DropdownMenuItem(
+                        text = { Text("Cerrar sesión") },
+                        onClick = {
+                            showMenu = false
+                            onLogout()
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                contentDescription = null
+                            )
+                        }
+                    )
                 }
             )
         }
@@ -165,7 +215,7 @@ fun AdminDashboardScreen(
                         "Consultar más fichajes",
                         color = Color.White,
                         style = MaterialTheme.typography.titleSmall,
-                        textAlign  = TextAlign.Center,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -180,7 +230,7 @@ fun AdminDashboardScreen(
                         "Añadir fichaje manual",
                         color = Color.White,
                         style = MaterialTheme.typography.titleSmall,
-                        textAlign  = TextAlign.Center,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

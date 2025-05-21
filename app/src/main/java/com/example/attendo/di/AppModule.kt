@@ -17,8 +17,7 @@ import com.example.attendo.data.dao.interfaces.BreakTypeDao
 import com.example.attendo.ui.viewmodel.timerecord.AdminTimeRecordListViewModel
 import com.example.attendo.ui.viewmodel.timerecord.ManualTimeRecordViewModel
 import com.example.attendo.ui.viewmodel.timerecord.UserTimeRecordListViewModel
-import io.ktor.http.parameters
-import org.koin.core.parameter.parametersOf
+import com.example.attendo.ui.viewmodel.breaktype.BreakTypeViewModel
 
 val appModule = module {
     single { Supabase.spClient }
@@ -66,4 +65,6 @@ val appModule = module {
             adminUserId = parameters.get()
         )
     }
+
+    viewModel { BreakTypeViewModel(get()) }
 }

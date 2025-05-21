@@ -7,7 +7,7 @@ import kotlinx.serialization.SerialName
 data class BreakType(
     @SerialName("break_id") val breakId: Int,
     @SerialName("description") val description: String,
-    @SerialName("computes_as") val computesAs: Boolean = false,
+    @SerialName("computes_as_work_time") val computesAs: Boolean = false,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("is_active") val isActive: Boolean = true
 )

@@ -25,6 +25,7 @@ import androidx.compose.runtime.*
 import androidx.navigation.compose.NavHost
 import com.example.attendo.data.model.auth.AuthUiState
 import com.example.attendo.data.model.user.UserState
+import com.example.attendo.ui.screen.breaktype.BreakTypeManagementScreen
 import com.example.attendo.ui.screen.dashboard.AdminDashboardScreen
 import com.example.attendo.ui.screen.dashboard.UserDashboardScreen
 import com.example.attendo.ui.screen.timerecord.AdminTimeRecordListScreen
@@ -157,6 +158,12 @@ fun AuthNavigation() {
                                     launchSingleTop = true
                                     restoreState = true
                                 }
+                            },
+                            onManageBreakTypesClick = {
+                                navController.navigate("manageBreakTypes") {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             }
                         )
                     }
@@ -198,7 +205,7 @@ fun AuthNavigation() {
                         }
 
                         else -> {
-                            // Solo navegamos atrás si no está cargando y no es regular
+                            // Solo navegamos atrás si no está cargando
                             if (userState !is UserState.Loading) {
                                 navController.popBackStack()
                             }
@@ -289,6 +296,34 @@ fun AuthNavigation() {
                                 CircularProgressIndicator()
                             }
                         }
+                    }
+
+                    is UserState.Loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    else -> {
+                        LaunchedEffect(Unit) {
+                            navController.popBackStack()
+                        }
+                    }
+                }
+            }
+
+            composable("manageBreakTypes") {
+                val userViewModel = koinViewModel<UserViewModel>()
+                val userState by userViewModel.userState.collectAsState()
+
+                when (userState) {
+                    is UserState.Admin -> {
+                        BreakTypeManagementScreen(
+                            onBack = { navController.popBackStack() }
+                        )
                     }
 
                     is UserState.Loading -> {

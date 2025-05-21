@@ -11,9 +11,25 @@ class BreakTypeImplSupabase(
     private val client: SupabaseClient
 ) : BreakTypeDao {
 
+    override suspend fun getAllBreakTypes(): List<BreakType> {
+        return try {
+            Log.d("Attendo", "Obteniendo todos los tipos de pausa")
+            val result = client.postgrest
+                .from("break_types")
+                .select()
+                .decodeList<BreakType>()
+
+            Log.d("BreakTypeDao", "Tipos de pausa obtenidos: ${result.size}")
+            result
+        } catch (e: Exception) {
+            Log.e("BreakTypeDao", "Error obteniendo tipos de pausa: ${e.message}", e)
+            emptyList()
+        }
+    }
+
     override suspend fun getAllActiveBreakTypes(): List<BreakType> {
         return try {
-            Log.d("BreakTypeDao", "Obteniendo tipos de pausa activos")
+            Log.d("Attendo", "Obteniendo tipos de pausa activos")
             val result = client.postgrest
                 .from("break_types")
                 .select {
@@ -23,15 +39,15 @@ class BreakTypeImplSupabase(
                 }
                 .decodeList<BreakType>()
 
-            // Log para debug
-            Log.d("BreakTypeDao", "Tipos de pausa obtenidos: ${result.size}")
+
+            Log.d("Attendo", "Tipos de pausa obtenidos: ${result.size}")
             result.forEach {
                 Log.d("BreakTypeDao", "Pausa ID: ${it.breakId}, Desc: ${it.description}")
             }
 
             result
         } catch (e: Exception) {
-            Log.e("BreakTypeDao", "Error obteniendo tipos de pausa activos: ${e.message}", e)
+            Log.e("Attendo", "Error obteniendo tipos de pausa activos: ${e.message}", e)
             emptyList()
         }
     }
@@ -46,14 +62,73 @@ class BreakTypeImplSupabase(
                     }
                 }
                 .decodeSingle<BreakType>()
-
-            // Log para debug
-            Log.d("BreakTypeDao", "Obtención de pausa por ID: ${breakId}, Desc: ${result.description}")
+            Log.d("Attendo", "Obtención de pausa por ID: ${breakId}, Desc: ${result.description}")
 
             result
         } catch (e: Exception) {
-            Log.e("BreakTypeDao", "Error obteniendo tipo de pausa con ID ${breakId}: ${e.message}", e)
+            Log.e("Attendo", "Error obteniendo tipo de pausa con ID ${breakId}: ${e.message}", e)
             null
+        }
+    }
+
+    override suspend fun insertBreakType(breakType: BreakType): BreakType? {
+        return try {
+            val result = client.postgrest
+                .from("break_types")
+                .insert(breakType) {
+                    select()
+                }
+                .decodeSingle<BreakType>()
+
+            Log.d("Attendo", "Tipo de pausa insertado: ${result.description}")
+            result
+        } catch (e: Exception) {
+            Log.e("Attendo", "Error insertando tipo de pausa: ${e.message}", e)
+            null
+        }
+    }
+
+    override suspend fun updateBreakType(breakType: BreakType): BreakType? {
+        return try {
+            val result = client.postgrest
+                .from("break_types")
+                .update({
+                    set("description", breakType.description)
+                    set("computes_as_work_time", breakType.computesAs)
+                    set("is_active", breakType.isActive)
+                }) {
+                    filter {
+                        eq("break_id", breakType.breakId)
+                    }
+                    select()
+                }
+                .decodeSingle<BreakType>()
+
+            Log.d("Attendo", "Tipo de pausa actualizado: ${result.description}")
+            result
+        } catch (e: Exception) {
+            Log.e("Attendo", "Error actualizando tipo de pausa: ${e.message}", e)
+            null
+        }
+    }
+
+    override suspend fun toggleBreakTypeStatus(breakId: Int, isActive: Boolean): Boolean {
+        return try {
+            client.postgrest
+                .from("break_types")
+                .update({
+                    set("is_active", isActive)
+                }) {
+                    filter {
+                        eq("break_id", breakId)
+                    }
+                }
+
+            Log.d("Attendo", "Estado de tipo de pausa actualizado. ID: $breakId, Activo: $isActive")
+            true
+        } catch (e: Exception) {
+            Log.e("Attendo", "Error actualizando estado de tipo de pausa: ${e.message}", e)
+            false
         }
     }
 }
