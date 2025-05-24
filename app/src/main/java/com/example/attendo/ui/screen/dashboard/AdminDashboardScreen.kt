@@ -1,32 +1,25 @@
 package com.example.attendo.ui.screen.dashboard
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.attendo.data.model.attendance.BreakType
-import com.example.attendo.data.model.attendance.TimeRecord
 import com.example.attendo.data.model.user.User
-import com.example.attendo.data.model.attendance.TimeRecordState
+import com.example.attendo.ui.components.ProfileHeader
+import com.example.attendo.ui.components.timerecord.TimeRecordStatusCard
+import com.example.attendo.ui.components.timerecord.TodayTimeRecordsSection
 import com.example.attendo.ui.viewmodel.timerecord.TimeRecordViewModel
+import com.example.attendo.ui.viewmodel.user.UserViewModel
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import androidx.compose.ui.text.style.TextAlign
-import com.example.attendo.ui.components.ProfileHeader
-import com.example.attendo.ui.viewmodel.user.UserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,50 +51,51 @@ fun AdminDashboardScreen(
                                 contentDescription = "Menú opciones"
                             )
                         }
-                    }
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Gestionar tipos de pausa") },
-                            onClick = {
-                                showMenu = false
-                                onManageBreakTypesClick()
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.List,
-                                    contentDescription = null
-                                )
-                            }
-                        )
-                    }
-                    DropdownMenuItem(
-                        text = { Text("Gestionar usuarios") },
-                        onClick = { showMenu = false },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.People,
-                                contentDescription = null
+
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Gestionar tipos de pausa") },
+                                onClick = {
+                                    showMenu = false
+                                    onManageBreakTypesClick()
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.List,
+                                        contentDescription = null
+                                    )
+                                }
                             )
-                        },
-                        enabled = false // BORRAR
-                    )
-                    HorizontalDivider()
-                    DropdownMenuItem(
-                        text = { Text("Cerrar sesión") },
-                        onClick = {
-                            showMenu = false
-                            onLogout()
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                                contentDescription = null
+                            DropdownMenuItem(
+                                text = { Text("Gestionar usuarios") },
+                                onClick = { showMenu = false },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.People,
+                                        contentDescription = null
+                                    )
+                                },
+                                enabled = false // BORRAR cuando se implemente
+                            )
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text("Cerrar sesión") },
+                                onClick = {
+                                    showMenu = false
+                                    onLogout()
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                        contentDescription = null
+                                    )
+                                }
                             )
                         }
-                    )
+                    }
                 }
             )
         }
@@ -113,7 +107,6 @@ fun AdminDashboardScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -130,7 +123,7 @@ fun AdminDashboardScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Estado actual - Reutilizamos el componente de UserDashboardScreen
+                // Componente reutilizable del estado de fichaje
                 TimeRecordStatusCard(
                     timeRecordState = timeRecordState,
                     breakTypes = breakTypes,
@@ -159,52 +152,16 @@ fun AdminDashboardScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Historial de fichajes del día - Reutilizamos de UserDashboardScreen
-                Card(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Fichajes de hoy",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        if (todayRecords.isEmpty()) {
-                            Text(
-                                text = "No hay registros para hoy",
-                                color = Color.Gray,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        } else {
-                            LazyColumn {
-                                items(todayRecords) { record ->
-                                    TimeRecordItem(
-                                        record = record,
-                                        getBreakTypeDescription = {
-                                            timeRecordViewModel.getBreakTypeDescription(
-                                                it
-                                            )
-                                        }
-                                    )
-
-                                    if (todayRecords.indexOf(record) < todayRecords.size - 1) {
-                                        Divider(modifier = Modifier.padding(vertical = 8.dp))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                // Componente reutilizable del historial del día
+                TodayTimeRecordsSection(
+                    todayRecords = todayRecords,
+                    getBreakTypeDescription = { timeRecordViewModel.getBreakTypeDescription(it) }
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Botones de acción para el administrador
+            // Botones de acción específicos para el administrador
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
