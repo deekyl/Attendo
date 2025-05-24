@@ -12,29 +12,28 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.example.attendo.data.model.attendance.BreakType
 import com.example.attendo.data.model.attendance.TimeRecord
 import com.example.attendo.data.model.attendance.TimeRecordFilter
+import com.example.attendo.data.model.style.RecordStyle
 import com.example.attendo.data.model.user.User
 import com.example.attendo.ui.viewmodel.timerecord.AdminTimeRecordListViewModel
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -79,7 +78,7 @@ fun AdminTimeRecordListScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver atrás"
                         )
                     }
@@ -93,7 +92,6 @@ fun AdminTimeRecordListScreen(
                         Badge(
                             modifier = Modifier.offset(x = (-6).dp, y = 6.dp)
                         ) {
-                            // Mostrar un contador si hay filtros activos
                             val activeFilters = countActiveFilters(filterState)
                             if (activeFilters > 0) {
                                 Text(activeFilters.toString())
@@ -109,7 +107,6 @@ fun AdminTimeRecordListScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Panel de filtros animado que se expande y contrae
             AnimatedVisibility(
                 visible = filtersExpanded,
                 enter = expandVertically(
@@ -143,7 +140,6 @@ fun AdminTimeRecordListScreen(
                 )
             }
 
-            // Summary Card - Muestra un resumen de los resultados
             if (!isLoading && timeRecords.isNotEmpty()) {
                 SummaryCard(
                     recordCount = timeRecords.size,
@@ -153,7 +149,6 @@ fun AdminTimeRecordListScreen(
                 )
             }
 
-            // Lista de registros
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -542,33 +537,23 @@ fun TimeRecordCard(
 
     val (dateStr, timeStr) = try {
         val dateTime =
-            java.time.LocalDateTime.parse(record.time, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+           LocalDateTime.parse(record.time, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
         Pair(dateTime.format(dateFormatter), dateTime.format(timeFormatter))
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         try {
             val dateTime =
-                java.time.LocalDateTime.parse(record.time, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                LocalDateTime.parse(record.time, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
             Pair(dateTime.format(dateFormatter), dateTime.format(timeFormatter))
-        } catch (e2: Exception) {
+        } catch (_: Exception) {
             Pair(record.time, "")
         }
     }
-
-    // Definir iconos, colores y textos según el tipo de registro
-    // Crear un data class para mantener los 5 valores que necesitamos
-    data class RecordStyle(
-        val icon: ImageVector,
-        val backgroundColor: Color,
-        val textColor: Color,
-        val actionText: String,
-        val iconTint: Color
-    )
 
     val recordStyle = when {
         // Entrada normal
         record.isEntry && record.breakTypeId == null ->
             RecordStyle(
-                icon = Icons.Default.Login,
+                icon = Icons.AutoMirrored.Filled.Login,
                 backgroundColor = Color(0xFFE8F5E9), // Verde claro
                 textColor = Color(0xFF1B5E20), // Verde oscuro
                 actionText = "Entrada",
@@ -578,7 +563,7 @@ fun TimeRecordCard(
         // Salida normal
         !record.isEntry && record.breakTypeId == null ->
             RecordStyle(
-                icon = Icons.Default.Logout,
+                icon = Icons.AutoMirrored.Filled.Logout,
                 backgroundColor = Color(0xFFFFEBEE), // Rojo claro
                 textColor = Color(0xFFB71C1C), // Rojo oscuro
                 actionText = "Salida",
@@ -796,13 +781,13 @@ fun EditTimeRecordDialog(
 ) {
     var editedTime by remember { mutableStateOf(record.time) }
 
-    // Para manejar fecha y hora separadas de forma amigable
+    // Para manejar fecha y hora separadas
     var dateTime = try {
         LocalDateTime.parse(record.time, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         try {
             LocalDateTime.parse(record.time, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-        } catch (e2: Exception) {
+        } catch (_: Exception) {
             LocalDateTime.now() // Valor por defecto
         }
     }

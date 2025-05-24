@@ -25,6 +25,8 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import androidx.compose.ui.text.style.TextAlign
+import com.example.attendo.ui.components.ProfileHeader
+import com.example.attendo.ui.viewmodel.user.UserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,13 +36,15 @@ fun AdminDashboardScreen(
     onTimeRecordListClick: (User) -> Unit,
     onAddManualTimeRecordClick: (User) -> Unit,
     onManageBreakTypesClick: () -> Unit,
-    timeRecordViewModel: TimeRecordViewModel = koinViewModel { parametersOf(user.userId) }
+    timeRecordViewModel: TimeRecordViewModel = koinViewModel { parametersOf(user.userId) },
+    userViewModel: UserViewModel = koinViewModel()
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val timeRecordState by timeRecordViewModel.timeRecordState.collectAsState()
     val todayRecords by timeRecordViewModel.todayRecords.collectAsState()
     val breakTypes by timeRecordViewModel.breakTypes.collectAsState()
+    val profileImageUrl by userViewModel.profileImageUrl.collectAsState()
 
     Scaffold(
         topBar = {
@@ -82,7 +86,7 @@ fun AdminDashboardScreen(
                                 contentDescription = null
                             )
                         },
-                        enabled = false // BORRARE
+                        enabled = false // BORRAR
                     )
                     HorizontalDivider()
                     DropdownMenuItem(
@@ -116,10 +120,12 @@ fun AdminDashboardScreen(
             ) {
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    text = "Bienvenido/a, ${user.fullName}",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
+                ProfileHeader(
+                    userName = user.fullName,
+                    profileImageUrl = profileImageUrl,
+                    onChangeProfileImage = {
+                        // TODO: Implementar selector de imagen (siguiente paso)
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))

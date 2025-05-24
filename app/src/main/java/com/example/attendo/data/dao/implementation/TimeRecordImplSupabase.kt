@@ -48,7 +48,7 @@ class TimeRecordImplSupabase(
                         gte("time", startOfDay)
                         lte("time", endOfDay)
                     }
-                    order("time", Order.ASCENDING)
+                    order("time", Order.DESCENDING)
                 }
                 .decodeList<TimeRecord>()
         } catch (e: Exception) {

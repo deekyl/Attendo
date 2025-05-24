@@ -24,7 +24,9 @@ import com.example.attendo.data.model.attendance.BreakType
 import com.example.attendo.data.model.attendance.TimeRecord
 import com.example.attendo.data.model.user.User
 import com.example.attendo.data.model.attendance.TimeRecordState
+import com.example.attendo.ui.components.ProfileHeader
 import com.example.attendo.ui.viewmodel.timerecord.TimeRecordViewModel
+import com.example.attendo.ui.viewmodel.user.UserViewModel
 import kotlinx.coroutines.coroutineScope
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -32,18 +34,24 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
 
+// Actualizar la función UserDashboardScreen en app/src/main/java/com/example/attendo/ui/screen/dashboard/UserDashboardScreen.kt
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserDashboardScreen(
     user: User,
     onLogout: () -> Unit,
-    onTimeRecordListClick: (User) -> Unit, // Añadido el nuevo parámetro
-    timeRecordViewModel: TimeRecordViewModel = koinViewModel { parametersOf(user.userId) }
+    onTimeRecordListClick: (User) -> Unit,
+    timeRecordViewModel: TimeRecordViewModel = koinViewModel { parametersOf(user.userId) },
+    userViewModel: UserViewModel = koinViewModel() // Añadir UserViewModel
 ) {
     val coroutineScope = rememberCoroutineScope()
     val timeRecordState by timeRecordViewModel.timeRecordState.collectAsState()
     val todayRecords by timeRecordViewModel.todayRecords.collectAsState()
     val breakTypes by timeRecordViewModel.breakTypes.collectAsState()
+
+    // Obtener la URL de la imagen de perfil
+    val profileImageUrl by userViewModel.profileImageUrl.collectAsState()
 
     Scaffold(
         topBar = {
@@ -74,15 +82,16 @@ fun UserDashboardScreen(
             ) {
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    text = "Bienvenido/a, ${user.fullName}",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
+                ProfileHeader(
+                    userName = user.fullName,
+                    profileImageUrl = profileImageUrl,
+                    onChangeProfileImage = {
+                        // TODO: Implementar selector de imagen (siguiente paso)
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Estado actual
                 TimeRecordStatusCard(
                     timeRecordState = timeRecordState,
                     breakTypes = breakTypes,
@@ -138,9 +147,7 @@ fun UserDashboardScreen(
                                     TimeRecordItem(
                                         record = record,
                                         getBreakTypeDescription = {
-                                            timeRecordViewModel.getBreakTypeDescription(
-                                                it
-                                            )
+                                            timeRecordViewModel.getBreakTypeDescription(it)
                                         }
                                     )
 
@@ -156,9 +163,8 @@ fun UserDashboardScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Botón con el callback de navegación
             Button(
-                onClick = { onTimeRecordListClick(user) }, // Usar el callback
+                onClick = { onTimeRecordListClick(user) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),

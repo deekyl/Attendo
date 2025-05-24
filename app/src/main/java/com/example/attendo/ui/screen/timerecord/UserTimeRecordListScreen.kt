@@ -12,7 +12,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Login
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,6 +41,7 @@ import com.example.attendo.data.model.attendance.TimeRecordFilter
 import com.example.attendo.data.model.user.User
 import com.example.attendo.ui.viewmodel.timerecord.UserTimeRecordListViewModel
 import androidx.compose.ui.text.style.TextOverflow
+import com.example.attendo.data.model.style.RecordStyle
 
 // Actualiza la import line y cómo usas los ViewModels en el Screen
 
@@ -75,7 +82,7 @@ fun TimeRecordListScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver atrás"
                         )
                     }
@@ -531,30 +538,20 @@ fun TimeRecordCard(
     val (dateStr, timeStr) = try {
         val dateTime = java.time.LocalDateTime.parse(record.time, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
         Pair(dateTime.format(dateFormatter), dateTime.format(timeFormatter))
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         try {
             val dateTime = java.time.LocalDateTime.parse(record.time, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
             Pair(dateTime.format(dateFormatter), dateTime.format(timeFormatter))
-        } catch (e2: Exception) {
+        } catch (_: Exception) {
             Pair(record.time, "")
         }
     }
-
-    // Definir iconos, colores y textos según el tipo de registro
-    // Crear un data class para mantener los 5 valores que necesitamos
-    data class RecordStyle(
-        val icon: ImageVector,
-        val backgroundColor: Color,
-        val textColor: Color,
-        val actionText: String,
-        val iconTint: Color
-    )
 
     val recordStyle = when {
         // Entrada normal
         record.isEntry && record.breakTypeId == null ->
             RecordStyle(
-                icon = Icons.Default.Login,
+                icon = Icons.AutoMirrored.Filled.Login,
                 backgroundColor = Color(0xFFE8F5E9), // Verde claro
                 textColor = Color(0xFF1B5E20), // Verde oscuro
                 actionText = "Entrada",
@@ -564,7 +561,7 @@ fun TimeRecordCard(
         // Salida normal
         !record.isEntry && record.breakTypeId == null ->
             RecordStyle(
-                icon = Icons.Default.Logout,
+                icon = Icons.AutoMirrored.Filled.Logout,
                 backgroundColor = Color(0xFFFFEBEE), // Rojo claro
                 textColor = Color(0xFFB71C1C), // Rojo oscuro
                 actionText = "Salida",

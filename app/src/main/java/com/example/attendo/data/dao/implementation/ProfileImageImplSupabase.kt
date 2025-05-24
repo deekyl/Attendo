@@ -4,7 +4,7 @@ import android.util.Log
 import com.example.attendo.data.dao.interfaces.ProfileImageDao
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.storage.storage
-import java.util.UUID
+import kotlinx.coroutines.delay
 
 class ProfileImageDaoImplSupabase(
     private val client: SupabaseClient
@@ -14,75 +14,73 @@ class ProfileImageDaoImplSupabase(
 
     override suspend fun uploadProfileImage(userId: String, imageBytes: ByteArray): String? {
         return try {
-            // Nombre único para el archivo
-            val fileName = "$userId-${UUID.randomUUID()}.jpg"
+            // Eliminar imágenes anteriores
+            deleteProfileImage(userId)
 
-            // Subir la imagen (versión actualizada)
-            client.storage.from(bucketName).upload(
-                path = fileName,
-                bytes = imageBytes,  // Actualizado: ahora usa 'bytes' en lugar de 'data'
+            // Esperar un poco para asegurar que la eliminación se complete
+            delay(500)
+
+            // Nombre único para el archivo
+            val fileName = "$userId-${System.currentTimeMillis()}.jpg"
+
+            // Subir la imagen
+            val bucket = client.storage.from(bucketName)
+            bucket.upload(fileName, imageBytes) {
                 upsert = true
-            )
+            }
 
             // Obtener la URL pública
-            val publicUrl = client.storage.from(bucketName).publicUrl(fileName)
-            Log.d("ProfileImageDao", "Imagen subida correctamente: $publicUrl")
+            val publicUrl = bucket.publicUrl(fileName)
+            Log.d("Attendo", "Imagen subida correctamente: $publicUrl")
             publicUrl
         } catch (e: Exception) {
-            Log.e("ProfileImageDao", "Error subiendo imagen de perfil: ${e.message}", e)
+            Log.e("Attendo", "Error subiendo imagen de perfil: ${e.message}", e)
             null
         }
     }
 
     override suspend fun getProfileImageUrl(userId: String): String? {
         return try {
-            // Buscar archivos con el prefijo del userId (versión actualizada)
-            val files = client.storage.from(bucketName).list(
-                path = "",  // Directorio raíz del bucket
-                options = io.github.jan.supabase.storage.StorageListOptions(
-                    prefix = userId,
-                    limit = 1,
-                    offset = 0,
-                    sortBy = null
-                )
-            )
+            // Listar archivos en el bucket
+            val bucket = client.storage.from(bucketName)
+            val files = bucket.list("")
 
-            if (files.isNotEmpty()) {
-                // Devolver la URL pública del primer archivo encontrado
-                val publicUrl = client.storage.from(bucketName).publicUrl(files.first().name)
-                Log.d("ProfileImageDao", "URL de imagen obtenida: $publicUrl")
+            // Buscar archivos que empiecen con el userId
+            val userFile = files.find { it.name.startsWith(userId) }
+
+            if (userFile != null) {
+                val publicUrl = bucket.publicUrl(userFile.name)
+                Log.d("Attendo", "URL de imagen obtenida: $publicUrl")
                 publicUrl
             } else {
-                Log.d("ProfileImageDao", "No se encontraron imágenes para el usuario $userId")
+                Log.d("Attendo", "No se encontraron imágenes para el usuario $userId")
                 null
             }
         } catch (e: Exception) {
-            Log.e("ProfileImageDao", "Error obteniendo URL de imagen: ${e.message}", e)
+            Log.e("Attendo", "Error obteniendo URL de imagen: ${e.message}", e)
             null
         }
     }
 
     override suspend fun deleteProfileImage(userId: String): Boolean {
         return try {
-            // Buscar archivos con el prefijo del userId (versión actualizada)
-            val files = client.storage.from(bucketName).list(
-                path = "",  // Directorio raíz del bucket
-                options = io.github.jan.supabase.storage.StorageListOptions(
-                    prefix = userId
-                )
-            )
+            // Listar archivos en el bucket
+            val bucket = client.storage.from(bucketName)
+            val files = bucket.list("")
 
-            // Eliminar todos los archivos encontrados
-            if (files.isNotEmpty()) {
-                client.storage.from(bucketName).delete(files.map { it.name })
-                Log.d("ProfileImageDao", "Imágenes eliminadas para el usuario $userId")
+            // Buscar archivos que empiecen con el userId
+            val userFiles = files.filter { it.name.startsWith(userId) }
+
+            if (userFiles.isNotEmpty()) {
+                bucket.delete(userFiles.map { it.name })
+                Log.d("Attendo", "Imágenes eliminadas para el usuario $userId")
                 true
             } else {
-                Log.d("ProfileImageDao", "No se encontraron imágenes para eliminar")
+                Log.d("Attendo", "No se encontraron imágenes para eliminar")
                 false
             }
         } catch (e: Exception) {
-            Log.e("ProfileImageDao", "Error eliminando imágenes: ${e.message}", e)
+            Log.e("Attendo", "Error eliminando imágenes: ${e.message}", e)
             false
         }
     }
