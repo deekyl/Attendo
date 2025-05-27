@@ -485,15 +485,6 @@ fun ProfileDataCard(
                 valueColor = if (user.isActive) Color(0xFF4CAF50) else Color(0xFFF44336)
             )
 
-            if (user.createdAt != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-                ProfileInfoRow(
-                    label = "Miembro desde",
-                    value = formatDate(user.createdAt),
-                    icon = Icons.Default.CalendarToday
-                )
-            }
-
             if (isEditMode) {
                 Spacer(modifier = Modifier.height(32.dp))
 

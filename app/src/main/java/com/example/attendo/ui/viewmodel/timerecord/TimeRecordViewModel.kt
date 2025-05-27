@@ -1,5 +1,6 @@
 package com.example.attendo.ui.viewmodel.timerecord
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.attendo.data.dao.interfaces.BreakTypeDao
@@ -7,6 +8,7 @@ import com.example.attendo.data.dao.interfaces.TimeRecordDao
 import com.example.attendo.data.model.attendance.BreakType
 import com.example.attendo.data.model.attendance.TimeRecord
 import com.example.attendo.data.model.attendance.TimeRecordState
+import com.example.attendo.utils.AttendoLocationManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,7 +20,8 @@ import java.time.format.DateTimeFormatter
 class TimeRecordViewModel(
     private val timeRecordDao: TimeRecordDao,
     private val breakTypeDao: BreakTypeDao,
-    private val userId: String
+    private val userId: String,
+    private val context: Context
 ) : ViewModel() {
 
     private val _timeRecordState = MutableStateFlow<TimeRecordState>(TimeRecordState.Loading)
@@ -29,6 +32,14 @@ class TimeRecordViewModel(
 
     private val _breakTypes = MutableStateFlow<List<BreakType>>(emptyList())
     val breakTypes: StateFlow<List<BreakType>> = _breakTypes.asStateFlow()
+
+    private val _isGettingLocation = MutableStateFlow(false)
+    val isGettingLocation: StateFlow<Boolean> = _isGettingLocation.asStateFlow()
+
+    private val _locationError = MutableStateFlow<String?>(null)
+    val locationError: StateFlow<String?> = _locationError.asStateFlow()
+
+    private val locationManager = AttendoLocationManager(context)
 
     init {
         loadCurrentStatus()
@@ -61,7 +72,7 @@ class TimeRecordViewModel(
                 val today = LocalDate.now().format(DateTimeFormatter.ISO_DATE)
                 val records = timeRecordDao.getTimeRecordsByDay(userId, today)
                 _todayRecords.value = records
-            } catch (e: Exception) {
+            } catch (_: Exception) {
             }
         }
     }
@@ -70,34 +81,79 @@ class TimeRecordViewModel(
         viewModelScope.launch {
             try {
                 _breakTypes.value = breakTypeDao.getAllActiveBreakTypes()
-            } catch (e: Exception) {
-                // Error silencioso, podríamos mostrar un error en la UI si es necesario
+            } catch (_: Exception) {
             }
         }
     }
 
-    fun checkIn(location: String? = null) {
-        createTimeRecord(true, null, location)
+    private suspend fun getCurrentLocationString(): String? {
+        return try {
+            _isGettingLocation.value = true
+            _locationError.value = null
+
+            if (!locationManager.hasLocationPermission()) {
+                _locationError.value = "Se requieren permisos de ubicación"
+                return null
+            }
+
+            if (!locationManager.isLocationEnabled()) {
+                _locationError.value = "Los servicios de ubicación están deshabilitados"
+                return null
+            }
+
+            val result = locationManager.getCurrentLocation()
+            result.fold(
+                onSuccess = { locationData ->
+                    locationManager.formatLocationForDisplay(locationData)
+                },
+                onFailure = { exception ->
+                    _locationError.value = "Error obteniendo ubicación: ${exception.message}"
+                    null
+                }
+            )
+        } catch (e: Exception) {
+            _locationError.value = "Error inesperado: ${e.message}"
+            null
+        } finally {
+            _isGettingLocation.value = false
+        }
     }
 
-    fun checkOut(location: String? = null) {
-        createTimeRecord(false, null, location)
+    fun checkIn() {
+        createTimeRecordWithLocation(isEntry = true, breakTypeId = null)
     }
 
-    fun startBreak(breakTypeId: Int, location: String? = null) {
-        createTimeRecord(false, breakTypeId, location)
+    fun checkOut() {
+        createTimeRecordWithLocation(isEntry = false, breakTypeId = null)
     }
 
-    suspend fun endBreak(location: String? = null) {
+    fun startBreak(breakTypeId: Int) {
+        createTimeRecordWithLocation(isEntry = true, breakTypeId = breakTypeId)
+    }
+
+    suspend fun endBreak() {
         try {
             val lastRecord = timeRecordDao.getLastTimeRecord(userId)
             val breakTypeId = lastRecord?.breakTypeId
-            createTimeRecord(true, breakTypeId, location)
+            createTimeRecordWithLocation(isEntry = false, breakTypeId = breakTypeId)
         } catch  (e: Exception) {
             _timeRecordState.value = TimeRecordState.Error(e.message ?: "Error al registrar fichaje")
         }
 
     }
+
+    fun checkInWithLocation(customLocation: String?) {
+        createTimeRecord(isEntry = true, breakTypeId = null, location = customLocation)
+    }
+
+    fun checkOutWithLocation(customLocation: String?) {
+        createTimeRecord(isEntry = false, breakTypeId = null, location = customLocation)
+    }
+
+    fun startBreakWithLocation(breakTypeId: Int, customLocation: String?) {
+        createTimeRecord(isEntry = false, breakTypeId = breakTypeId, location = customLocation)
+    }
+
 
     fun getBreakTypeDescription(breakId: Int): String {
         return _breakTypes.value.find { it.breakId == breakId }?.description ?: "Descanso"
@@ -115,7 +171,7 @@ class TimeRecordViewModel(
                     isEntry = isEntry,
                     breakTypeId = breakTypeId,
                     location = location,
-                    isManual = false // Asumimos que es un registro automático
+                    isManual = false
                 )
 
                 timeRecordDao.insertTimeRecord(record)
@@ -125,5 +181,30 @@ class TimeRecordViewModel(
                 _timeRecordState.value = TimeRecordState.Error(e.message ?: "Error al registrar fichaje")
             }
         }
+    }
+
+    private fun createTimeRecordWithLocation(isEntry: Boolean, breakTypeId: Int?) {
+        viewModelScope.launch {
+            _timeRecordState.value = TimeRecordState.Loading
+
+            try {
+                val location = getCurrentLocationString()
+                createTimeRecord(isEntry, breakTypeId, location)
+            } catch (e: Exception) {
+                _timeRecordState.value = TimeRecordState.Error(e.message ?: "Error al registrar fichaje")
+            }
+        }
+    }
+
+    fun clearLocationError() {
+        _locationError.value = null
+    }
+
+    fun hasLocationPermission(): Boolean {
+        return locationManager.hasLocationPermission()
+    }
+
+    fun isLocationEnabled(): Boolean {
+        return locationManager.isLocationEnabled()
     }
 }

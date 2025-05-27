@@ -12,11 +12,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.attendo.data.model.user.User
+import com.example.attendo.ui.components.LocationErrorCard
+import com.example.attendo.ui.components.LocationPermissionDialog
+import com.example.attendo.ui.components.LocationSettingsDialog
 import com.example.attendo.ui.components.ProfileHeader
 import com.example.attendo.ui.components.timerecord.TimeRecordStatusCard
 import com.example.attendo.ui.components.timerecord.TodayTimeRecordsSection
 import com.example.attendo.ui.viewmodel.timerecord.TimeRecordViewModel
 import com.example.attendo.ui.viewmodel.user.UserViewModel
+import com.example.attendo.utils.rememberLocationPermissionState
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -39,6 +43,17 @@ fun AdminDashboardScreen(
     val todayRecords by timeRecordViewModel.todayRecords.collectAsState()
     val breakTypes by timeRecordViewModel.breakTypes.collectAsState()
     val profileImageUrl by userViewModel.profileImageUrl.collectAsState()
+
+    val isGettingLocation by timeRecordViewModel.isGettingLocation.collectAsState()
+    val locationError by timeRecordViewModel.locationError.collectAsState()
+    val locationPermissionState = rememberLocationPermissionState()
+    var showLocationSettingsDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(locationPermissionState.hasPermission) {
+        if (locationPermissionState.hasPermission && !timeRecordViewModel.isLocationEnabled()) {
+            showLocationSettingsDialog = true
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -122,7 +137,19 @@ fun AdminDashboardScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Componente reutilizable del estado de fichaje
+                LocationErrorCard(
+                    error = locationError,
+                    isGettingLocation = isGettingLocation,
+                    onRetry = {
+                        timeRecordViewModel.clearLocationError()
+                    },
+                    onDismiss = {
+                        timeRecordViewModel.clearLocationError()
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 TimeRecordStatusCard(
                     timeRecordState = timeRecordState,
                     breakTypes = breakTypes,
@@ -199,4 +226,18 @@ fun AdminDashboardScreen(
             }
         }
     }
+
+    LocationPermissionDialog(
+        show = locationPermissionState.showRationale,
+        onDismiss = locationPermissionState.dismissRationale,
+        onRequestPermission = locationPermissionState.requestPermission,
+        message = "Attendo necesita acceso a tu ubicación para registrar automáticamente dónde realizas tus fichajes como administrador."
+    )
+
+    LocationSettingsDialog(
+        show = showLocationSettingsDialog,
+        onDismiss = { showLocationSettingsDialog = false },
+        message = "Los servicios de ubicación están deshabilitados. Para registrar la ubicación de tus fichajes, activa la ubicación en los ajustes."
+    )
+
 }

@@ -20,6 +20,7 @@ material3 = "1.3.2"
 materialIconsExtended = "1.7.8"
 composeMaterial = "1.4.1"
 navigationCompose = "2.9.0"
+playServicesLocation = "21.3.0"
 storageKt = "3.1.4"
 
 [libraries]
@@ -50,6 +51,7 @@ ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktorCli
 ktor-utils = { module = "io.ktor:ktor-utils", version.ref = "ktorUtils" }
 material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
 androidx-compose-material = { group = "androidx.wear.compose", name = "compose-material", version.ref = "composeMaterial" }
+play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
 postgrest-kt = { module = "io.github.jan-tennert.supabase:postgrest-kt", version.ref = "authKt" }
 storage-kt = { module = "io.github.jan-tennert.supabase:storage-kt", version.ref = "storageKt" }
 

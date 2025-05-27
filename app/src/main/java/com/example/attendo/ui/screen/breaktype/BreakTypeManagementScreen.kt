@@ -53,7 +53,7 @@ fun BreakTypeManagementScreen(
             when (it) {
                 is BreakTypeViewModel.OperationResult.Success -> {
                     showSuccessMessage = true
-                    delay(3000) // Mostrar por 3 segundos
+                    delay(3000)
                     showSuccessMessage = false
                     viewModel.clearOperationResult()
                 }

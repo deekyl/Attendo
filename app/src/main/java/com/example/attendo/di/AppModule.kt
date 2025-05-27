@@ -20,6 +20,7 @@ import com.example.attendo.ui.viewmodel.timerecord.TimeRecordViewModel
 import com.example.attendo.ui.viewmodel.timerecord.UserTimeRecordListViewModel
 import com.example.attendo.ui.viewmodel.user.ProfileViewModel
 import com.example.attendo.ui.viewmodel.user.UserViewModel
+import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
@@ -42,7 +43,8 @@ val appModule = module {
         TimeRecordViewModel(
             timeRecordDao = get(),
             breakTypeDao = get(),
-            userId = parameters.get()
+            userId = parameters.get(),
+            context = androidContext()
         )
     }
     viewModel { parameters ->

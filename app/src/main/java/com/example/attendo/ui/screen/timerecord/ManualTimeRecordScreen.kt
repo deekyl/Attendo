@@ -28,13 +28,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.attendo.data.model.attendance.BreakType
 import com.example.attendo.data.model.user.User
+import com.example.attendo.ui.components.LocationPermissionDialog
+import com.example.attendo.ui.components.LocationSettingsDialog
 import com.example.attendo.ui.theme.PurplePrimary
 import com.example.attendo.ui.viewmodel.timerecord.ManualTimeRecordViewModel
+import com.example.attendo.utils.AttendoLocationManager
+import com.example.attendo.utils.rememberLocationPermissionState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -51,6 +56,7 @@ fun ManualTimeRecordScreen(
     onBack: () -> Unit,
     viewModel: ManualTimeRecordViewModel = koinViewModel { parametersOf(adminUser.userId) }
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
@@ -642,26 +648,168 @@ fun ManualTimeRecordScreen(
 
                         // Campo de ubicación
                         FormSection(
-                            title = "UBICACIÓN (OPCIONAL)",
+                            title = "UBICACIÓN",
                             icon = Icons.Outlined.LocationOn
                         ) {
-                            OutlinedTextField(
-                                value = location,
-                                onValueChange = { location = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Outlined.LocationOn,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
+                            var useCurrentLocation by remember { mutableStateOf(false) }
+                            var isGettingLocation by remember { mutableStateOf(false) }
+                            var locationError by remember { mutableStateOf<String?>(null) }
+
+                            val locationManager = remember { AttendoLocationManager(context) }
+                            val locationPermissionState = rememberLocationPermissionState()
+                            var showLocationDialog by remember { mutableStateOf(false) }
+
+                            Column {
+                                // Switch para usar ubicación actual
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Usar ubicación actual",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
-                                },
-                                placeholder = { Text("Introducir ubicación") },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant,
-                                    focusedBorderColor = MaterialTheme.colorScheme.primary
+
+                                    Switch(
+                                        checked = useCurrentLocation,
+                                        onCheckedChange = { checked ->
+                                            if (checked) {
+                                                if (!locationPermissionState.hasPermission) {
+                                                    showLocationDialog = true
+                                                } else if (!locationManager.isLocationEnabled()) {
+                                                    showLocationDialog = true
+                                                } else {
+                                                    useCurrentLocation = true
+                                                    // Obtener ubicación automáticamente
+                                                    coroutineScope.launch {
+                                                        isGettingLocation = true
+                                                        locationError = null
+
+                                                        val result = locationManager.getCurrentLocation()
+                                                        result.fold(
+                                                            onSuccess = { locationData ->
+                                                                location = locationManager.formatLocationForDisplay(locationData)
+                                                            },
+                                                            onFailure = { exception ->
+                                                                locationError = "Error: ${exception.message}"
+                                                                useCurrentLocation = false
+                                                            }
+                                                        )
+                                                        isGettingLocation = false
+                                                    }
+                                                }
+                                            } else {
+                                                useCurrentLocation = false
+                                                location = ""
+                                            }
+                                        }
+                                    )
+                                }
+
+                                // Campo de texto para ubicación manual
+                                OutlinedTextField(
+                                    value = location,
+                                    onValueChange = {
+                                        location = it
+                                        if (it.isNotEmpty()) {
+                                            useCurrentLocation = false
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    enabled = !useCurrentLocation && !isGettingLocation,
+                                    leadingIcon = {
+                                        if (isGettingLocation) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(20.dp),
+                                                strokeWidth = 2.dp,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = if (useCurrentLocation) Icons.Filled.LocationOn else Icons.Outlined.LocationOn,
+                                                contentDescription = null,
+                                                tint = if (useCurrentLocation) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    },
+                                    placeholder = {
+                                        Text(
+                                            if (useCurrentLocation) "Obteniendo ubicación..."
+                                            else "Introducir ubicación (opcional)"
+                                        )
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        disabledBorderColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    )
                                 )
+
+                                // Mostrar error de ubicación si existe
+                                if (locationError != null) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Warning,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = locationError!!,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+
+                                // Información adicional sobre la ubicación
+                                if (useCurrentLocation && location.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Info,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Ubicación actual detectada",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Diálogo para permisos de ubicación
+                            LocationPermissionDialog(
+                                show = showLocationDialog && !locationPermissionState.hasPermission,
+                                onDismiss = { showLocationDialog = false },
+                                onRequestPermission = {
+                                    locationPermissionState.requestPermission()
+                                    showLocationDialog = false
+                                },
+                                message = "Para usar la ubicación actual, necesitamos acceso a tu ubicación."
+                            )
+
+                            // Diálogo para servicios de ubicación
+                            LocationSettingsDialog(
+                                show = showLocationDialog && locationPermissionState.hasPermission && !locationManager.isLocationEnabled(),
+                                onDismiss = { showLocationDialog = false }
                             )
                         }
 
