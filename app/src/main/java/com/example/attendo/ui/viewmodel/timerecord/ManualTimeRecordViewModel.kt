@@ -35,11 +35,9 @@ class ManualTimeRecordViewModel(
     private val _operationResult = MutableStateFlow<OperationResult?>(null)
     val operationResult: StateFlow<OperationResult?> = _operationResult.asStateFlow()
 
-    // Estados para la pantalla
     private val _selectedUser = MutableStateFlow<User?>(null)
     val selectedUser: StateFlow<User?> = _selectedUser.asStateFlow()
 
-    // Estado para el último registro del usuario seleccionado
     private val _lastTimeRecord = MutableStateFlow<TimeRecord?>(null)
     val lastTimeRecord: StateFlow<TimeRecord?> = _lastTimeRecord.asStateFlow()
 

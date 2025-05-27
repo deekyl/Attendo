@@ -14,8 +14,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.FactCheck
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.outlined.FactCheck
+import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -167,13 +171,6 @@ fun ManualTimeRecordScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.EditCalendar,
-                        contentDescription = null,
-                        tint = PurplePrimary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = "Nuevo fichaje manual",
                         style = MaterialTheme.typography.headlineSmall,
@@ -338,7 +335,7 @@ fun ManualTimeRecordScreen(
                         // Sección de tipo de registro
                         FormSection(
                             title = "TIPO DE REGISTRO",
-                            icon = Icons.Outlined.FactCheck
+                            icon = Icons.AutoMirrored.Outlined.FactCheck
                         ) {
                             Row(
                                 modifier = Modifier
@@ -346,14 +343,13 @@ fun ManualTimeRecordScreen(
                                     .padding(bottom = 16.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                RecordTypeButton2025(
+                                RecordTypeButton(
                                     text = "Entrada",
                                     icon = Icons.Outlined.Login,
                                     selected = selectedRecordType == RecordType.ENTRY,
                                     color = Color(0xFF4CAF50),
                                     onClick = {
                                         selectedRecordType = RecordType.ENTRY
-                                        // Si es una vuelta de pausa, obtener el mismo tipo de pausa
                                         if (viewModel.isReturnFromBreak()) {
                                             val breakTypeId = viewModel.getLastBreakTypeId()
                                             selectedBreakType =
@@ -365,9 +361,9 @@ fun ManualTimeRecordScreen(
                                     modifier = Modifier.weight(1f)
                                 )
 
-                                RecordTypeButton2025(
+                                RecordTypeButton(
                                     text = "Salida",
-                                    icon = Icons.Outlined.Logout,
+                                    icon = Icons.AutoMirrored.Outlined.Logout,
                                     selected = selectedRecordType == RecordType.EXIT,
                                     color = Color(0xFFF44336),
                                     onClick = {
@@ -377,7 +373,7 @@ fun ManualTimeRecordScreen(
                                     modifier = Modifier.weight(1f)
                                 )
 
-                                RecordTypeButton2025(
+                                RecordTypeButton(
                                     text = "Pausa",
                                     icon = Icons.Outlined.Coffee,
                                     selected = selectedRecordType == RecordType.BREAK,
@@ -931,7 +927,7 @@ fun FormSection(
 }
 
 @Composable
-fun RecordTypeButton2025(
+fun RecordTypeButton(
     text: String,
     icon: ImageVector,
     selected: Boolean,

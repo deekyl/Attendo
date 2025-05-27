@@ -29,6 +29,7 @@ fun AdminDashboardScreen(
     onTimeRecordListClick: (User) -> Unit,
     onAddManualTimeRecordClick: (User) -> Unit,
     onManageBreakTypesClick: () -> Unit,
+    onProfileClick: (User) -> Unit,
     timeRecordViewModel: TimeRecordViewModel = koinViewModel { parametersOf(user.userId) },
     userViewModel: UserViewModel = koinViewModel()
 ) {
@@ -116,9 +117,7 @@ fun AdminDashboardScreen(
                 ProfileHeader(
                     userName = user.fullName,
                     profileImageUrl = profileImageUrl,
-                    onChangeProfileImage = {
-                        // TODO: Implementar selector de imagen (siguiente paso)
-                    }
+                    onProfileClick = { onProfileClick(user) }
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))

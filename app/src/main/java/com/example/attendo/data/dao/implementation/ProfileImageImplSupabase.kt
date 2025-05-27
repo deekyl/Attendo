@@ -10,7 +10,7 @@ class ProfileImageDaoImplSupabase(
     private val client: SupabaseClient
 ) : ProfileImageDao {
 
-    private val bucketName = "profile_images"
+    private val bucketName = "images"
 
     override suspend fun uploadProfileImage(userId: String, imageBytes: ByteArray): String? {
         return try {

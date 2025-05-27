@@ -22,6 +22,7 @@ fun ProfileHeader(
     modifier: Modifier = Modifier,
     userName: String,
     profileImageUrl: String?,
+    onProfileClick: () -> Unit = {},
     onChangeProfileImage: () -> Unit = {}
 ) {
     Row(
@@ -64,7 +65,11 @@ fun ProfileHeader(
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        Column {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .clickable { onProfileClick() }
+        ) {
             Text(
                 text = "Bienvenido/a,",
                 style = MaterialTheme.typography.bodyLarge,

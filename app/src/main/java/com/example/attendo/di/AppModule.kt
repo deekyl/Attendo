@@ -18,6 +18,7 @@ import com.example.attendo.ui.viewmodel.timerecord.AdminTimeRecordListViewModel
 import com.example.attendo.ui.viewmodel.timerecord.ManualTimeRecordViewModel
 import com.example.attendo.ui.viewmodel.timerecord.TimeRecordViewModel
 import com.example.attendo.ui.viewmodel.timerecord.UserTimeRecordListViewModel
+import com.example.attendo.ui.viewmodel.user.ProfileViewModel
 import com.example.attendo.ui.viewmodel.user.UserViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
@@ -29,14 +30,14 @@ val appModule = module {
     single<UserDao> { UserDaoImplSupabase(get()) }
     single<TimeRecordDao> { TimeRecordImplSupabase(get()) }
     single<BreakTypeDao> { BreakTypeImplSupabase(get()) }
-    single<ProfileImageDao> { ProfileImageDaoImplSupabase(get()) } // Añadir el DAO
+    single<ProfileImageDao> { ProfileImageDaoImplSupabase(get()) }
 
     // Repositorios
     single<AuthRepository> { AuthRepositoryImplSupabase(get(), get()) }
 
     // ViewModels
     viewModel { LoginViewModel(get()) }
-    viewModel { UserViewModel(get(), get()) } // Actualizar para incluir ProfileImageDao
+    viewModel { UserViewModel(get(), get()) }
     viewModel { parameters ->
         TimeRecordViewModel(
             timeRecordDao = get(),
@@ -71,4 +72,6 @@ val appModule = module {
     }
 
     viewModel { BreakTypeViewModel(get()) }
+
+    viewModel { ProfileViewModel(get(), get()) }
 }

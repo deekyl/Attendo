@@ -26,7 +26,6 @@ class UserDaoImplSupabase(
             }
         } catch (e: Exception) {
             if (e is CancellationException) {
-                // Propagar explícitamente para manejo adecuado
                 throw e
             }
             Log.e("attendo", "Error getting user: ${e.message}", e)
@@ -46,13 +45,35 @@ class UserDaoImplSupabase(
     }
 
     override suspend fun updateUser(user: User): Boolean {
-        TODO("Not yet implemented")
+        return try {
+            withContext(Dispatchers.IO) {
+                client.postgrest
+                    .from("users")
+                    .update({
+                        set("full_name", user.fullName)
+                        set("email", user.email)
+                        set("document_id", user.documentId)
+                        set("address", user.address)
+                    }) {
+                        filter {
+                            eq("user_id", user.userId)
+                        }
+                    }
+                Log.d("Attendo", "Usuario actualizado correctamente: ${user.userId}")
+                true
+            }
+        } catch (e: Exception) {
+            if (e is CancellationException) {
+                throw e
+            }
+            Log.e("Attendo", "Error actualizando usuario: ${e.message}", e)
+            false
+        }
     }
 
     override suspend fun getAllUsers(): List<User> {
         return try {
-            // Usamos withContext para asegurarnos de manejar la cancelación correctamente
-            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            withContext(Dispatchers.IO) {
                 client.postgrest
                     .from("users")
                     .select {
@@ -65,10 +86,9 @@ class UserDaoImplSupabase(
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) {
-                // Propagamos la excepción de cancelación para manejarla adecuadamente
                 throw e
             }
-            Log.e("attendo", "Error getting all users: ${e.message}", e)
+            Log.e("Attendo", "Error getting all users: ${e.message}", e)
             emptyList()
         }
     }

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +27,7 @@ import com.example.attendo.data.model.user.UserState
 import com.example.attendo.ui.screen.breaktype.BreakTypeManagementScreen
 import com.example.attendo.ui.screen.dashboard.AdminDashboardScreen
 import com.example.attendo.ui.screen.dashboard.UserDashboardScreen
+import com.example.attendo.ui.screen.profile.ProfileScreen
 import com.example.attendo.ui.screen.timerecord.AdminTimeRecordListScreen
 import com.example.attendo.ui.screen.timerecord.ManualTimeRecordScreen
 import com.example.attendo.ui.screen.timerecord.TimeRecordListScreen
@@ -35,7 +35,6 @@ import com.example.attendo.ui.viewmodel.auth.login.LoginViewModel
 import com.example.attendo.ui.viewmodel.user.UserViewModel
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
-import org.koin.core.parameter.parametersOf
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -130,9 +129,14 @@ fun AuthNavigation() {
                                     }
                                 }
                             },
-                            // Implementación del callback de navegación a TimeRecordList
                             onTimeRecordListClick = { user ->
                                 navController.navigate("timeRecordList/${user.userId}")
+                            },
+                            onProfileClick = { user ->
+                                navController.navigate("profile/${user.userId}") {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             }
                         )
                     }
@@ -149,6 +153,12 @@ fun AuthNavigation() {
                             },
                             onTimeRecordListClick = { user ->
                                 navController.navigate("adminTimeRecordList") {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            onProfileClick = { user ->
+                                navController.navigate("profile/${user.userId}") {
                                     launchSingleTop = true
                                     restoreState = true
                                 }
@@ -191,7 +201,6 @@ fun AuthNavigation() {
                 val userViewModel = koinViewModel<UserViewModel>()
                 val userState by userViewModel.userState.collectAsState()
 
-                // Mostrar siempre un indicador de carga mientras esperamos el estado del usuario
                 var showContent by remember { mutableStateOf(false) }
 
                 LaunchedEffect(userState) {
@@ -324,6 +333,57 @@ fun AuthNavigation() {
                         BreakTypeManagementScreen(
                             onBack = { navController.popBackStack() }
                         )
+                    }
+
+                    is UserState.Loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    else -> {
+                        LaunchedEffect(Unit) {
+                            navController.popBackStack()
+                        }
+                    }
+                }
+            }
+            composable("profile/{userId}") { backStackEntry ->
+                val userId =
+                    backStackEntry.arguments?.getString("userId") ?: return@composable
+                val userViewModel = koinViewModel<UserViewModel>()
+                val userState by userViewModel.userState.collectAsState()
+
+                when (userState) {
+                    is UserState.Regular -> {
+                        val user = (userState as UserState.Regular).user
+                        if (user.userId == userId) {
+                            ProfileScreen(
+                                user = user,
+                                onBack = { navController.popBackStack() }
+                            )
+                        } else {
+                            LaunchedEffect(Unit) {
+                                navController.popBackStack()
+                            }
+                        }
+                    }
+
+                    is UserState.Admin -> {
+                        val user = (userState as UserState.Admin).user
+                        if (user.userId == userId) {
+                            ProfileScreen(
+                                user = user,
+                                onBack = { navController.popBackStack() }
+                            )
+                        } else {
+                            LaunchedEffect(Unit) {
+                                navController.popBackStack()
+                            }
+                        }
                     }
 
                     is UserState.Loading -> {

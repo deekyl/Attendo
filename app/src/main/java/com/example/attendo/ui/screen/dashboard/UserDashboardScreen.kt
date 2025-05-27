@@ -1,5 +1,6 @@
 package com.example.attendo.ui.screen.dashboard
 
+import android.net.http.SslCertificate.restoreState
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -29,6 +30,7 @@ fun UserDashboardScreen(
     user: User,
     onLogout: () -> Unit,
     onTimeRecordListClick: (User) -> Unit,
+    onProfileClick: (User) -> Unit,
     timeRecordViewModel: TimeRecordViewModel = koinViewModel { parametersOf(user.userId) },
     userViewModel: UserViewModel = koinViewModel()
 ) {
@@ -69,9 +71,7 @@ fun UserDashboardScreen(
                 ProfileHeader(
                     userName = user.fullName,
                     profileImageUrl = profileImageUrl,
-                    onChangeProfileImage = {
-                        // TODO: Implementar selector de imagen (siguiente paso)
-                    }
+                    onProfileClick = { onProfileClick(user) }
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
