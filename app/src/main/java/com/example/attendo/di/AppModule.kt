@@ -1,4 +1,3 @@
-// app/src/main/java/com/example/attendo/di/AppModule.kt
 package com.example.attendo.di
 
 import com.example.attendo.data.dao.implementation.BreakTypeImplSupabase
@@ -20,6 +19,7 @@ import com.example.attendo.ui.viewmodel.timerecord.TimeRecordViewModel
 import com.example.attendo.ui.viewmodel.timerecord.UserTimeRecordListViewModel
 import com.example.attendo.ui.viewmodel.user.ProfileViewModel
 import com.example.attendo.ui.viewmodel.user.UserViewModel
+import com.example.attendo.ui.viewmodel.user.UserManagementViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
@@ -76,4 +76,7 @@ val appModule = module {
     viewModel { BreakTypeViewModel(get()) }
 
     viewModel { ProfileViewModel(get(), get()) }
+
+    viewModel { UserManagementViewModel(get(), get()) }
+
 }

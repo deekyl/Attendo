@@ -31,7 +31,11 @@ import com.example.attendo.ui.screen.profile.ProfileScreen
 import com.example.attendo.ui.screen.timerecord.AdminTimeRecordListScreen
 import com.example.attendo.ui.screen.timerecord.ManualTimeRecordScreen
 import com.example.attendo.ui.screen.timerecord.TimeRecordListScreen
+import com.example.attendo.ui.screen.user.CreateUserScreen
+import com.example.attendo.ui.screen.user.EditUserScreen
+import com.example.attendo.ui.screen.user.UserManagementScreen
 import com.example.attendo.ui.viewmodel.auth.login.LoginViewModel
+import com.example.attendo.ui.viewmodel.user.UserManagementViewModel
 import com.example.attendo.ui.viewmodel.user.UserViewModel
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
@@ -174,6 +178,12 @@ fun AuthNavigation() {
                                     launchSingleTop = true
                                     restoreState = true
                                 }
+                            },
+                            onManageUsersClick = {
+                                navController.navigate("userManagement") {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             }
                         )
                     }
@@ -247,7 +257,6 @@ fun AuthNavigation() {
                     is UserState.Admin -> {
                         val adminUser = (userState as UserState.Admin).user
 
-                        // Asegurar que tenemos un usuario válido antes de continuar
                         if (adminUser != null) {
                             val rememberedUser = remember { adminUser }
 
@@ -291,7 +300,6 @@ fun AuthNavigation() {
                     is UserState.Admin -> {
                         val adminUser = (userState as UserState.Admin).user
 
-                        // Asegurar que tenemos un usuario válido antes de continuar
                         if (adminUser != null) {
                             ManualTimeRecordScreen(
                                 adminUser = adminUser,
@@ -403,6 +411,117 @@ fun AuthNavigation() {
                 }
             }
 
+            composable("userManagement") {
+                val userViewModel = koinViewModel<UserViewModel>()
+                val userState by userViewModel.userState.collectAsState()
+
+                when (userState) {
+                    is UserState.Admin -> {
+                        UserManagementScreen(
+                            onBack = { navController.popBackStack() },
+                            onUserSelected = { user ->
+                                navController.navigate("editUser/${user.userId}") {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onCreateUser = {
+                                navController.navigate("createUser") {
+                                    launchSingleTop = true
+                                }
+                            }
+                        )
+                    }
+
+                    is UserState.Loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    else -> {
+                        LaunchedEffect(Unit) {
+                            navController.popBackStack()
+                        }
+                    }
+                }
+            }
+
+            composable("createUser") {
+                val userViewModel = koinViewModel<UserViewModel>()
+                val userState by userViewModel.userState.collectAsState()
+
+                when (userState) {
+                    is UserState.Admin -> {
+                        CreateUserScreen(
+                            onBack = { navController.popBackStack() },
+                            onUserCreated = {
+                                navController.popBackStack()
+                            }
+                        )
+                    }
+
+                    is UserState.Loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    else -> {
+                        LaunchedEffect(Unit) {
+                            navController.popBackStack()
+                        }
+                    }
+                }
+            }
+
+            composable("editUser/{userId}") { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
+                val userViewModel = koinViewModel<UserViewModel>()
+                val userState by userViewModel.userState.collectAsState()
+                val userManagementViewModel = koinViewModel<UserManagementViewModel>()
+                val allUsers by userManagementViewModel.allUsers.collectAsState()
+
+                when (userState) {
+                    is UserState.Admin -> {
+                        val userToEdit = allUsers.find { it.userId == userId }
+
+                        if (userToEdit != null) {
+                            EditUserScreen(
+                                user = userToEdit,
+                                onBack = { navController.popBackStack() },
+                                onUserUpdated = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        } else {
+                            LaunchedEffect(Unit) {
+                                navController.popBackStack()
+                            }
+                        }
+                    }
+
+                    is UserState.Loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    else -> {
+                        LaunchedEffect(Unit) {
+                            navController.popBackStack()
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -54,6 +54,7 @@ class UserDaoImplSupabase(
                         set("email", user.email)
                         set("document_id", user.documentId)
                         set("address", user.address)
+                        set("is_admin", user.isAdmin)
                     }) {
                         filter {
                             eq("user_id", user.userId)
@@ -90,6 +91,90 @@ class UserDaoImplSupabase(
             }
             Log.e("Attendo", "Error getting all users: ${e.message}", e)
             emptyList()
+        }
+    }
+
+    override suspend fun getAllUsersIncludingInactive(): List<User> {
+        return try {
+            withContext(Dispatchers.IO) {
+                client.postgrest
+                    .from("users")
+                    .select {
+                        order("full_name", io.github.jan.supabase.postgrest.query.Order.ASCENDING)
+                    }
+                    .decodeList<User>()
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) {
+                throw e
+            }
+            Log.e("Attendo", "Error getting all users including inactive: ${e.message}", e)
+            emptyList()
+        }
+    }
+
+    override suspend fun createUser(user: User): User? {
+        return try {
+            withContext(Dispatchers.IO) {
+                client.postgrest
+                    .from("users")
+                    .insert(user) {
+                        select()
+                    }
+                    .decodeSingle<User>()
+            }
+        } catch (e: Exception) {
+            if (e is CancellationException) {
+                throw e
+            }
+            Log.e("Attendo", "Error creating user: ${e.message}", e)
+            null
+        }
+    }
+
+    override suspend fun toggleUserStatus(userId: String, isActive: Boolean): Boolean {
+        return try {
+            withContext(Dispatchers.IO) {
+                client.postgrest
+                    .from("users")
+                    .update({
+                        set("is_active", isActive)
+                    }) {
+                        filter {
+                            eq("user_id", userId)
+                        }
+                    }
+                Log.d("Attendo", "Estado de usuario actualizado. ID: $userId, Activo: $isActive")
+                true
+            }
+        } catch (e: Exception) {
+            if (e is CancellationException) {
+                throw e
+            }
+            Log.e("Attendo", "Error toggling user status: ${e.message}", e)
+            false
+        }
+    }
+
+    override suspend fun deleteUser(userId: String): Boolean {
+        return try {
+            withContext(Dispatchers.IO) {
+                client.postgrest
+                    .from("users")
+                    .delete {
+                        filter {
+                            eq("user_id", userId)
+                        }
+                    }
+                Log.d("Attendo", "Usuario eliminado: $userId")
+                true
+            }
+        } catch (e: Exception) {
+            if (e is CancellationException) {
+                throw e
+            }
+            Log.e("Attendo", "Error deleting user: ${e.message}", e)
+            false
         }
     }
 }

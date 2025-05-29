@@ -33,6 +33,7 @@ fun AdminDashboardScreen(
     onTimeRecordListClick: (User) -> Unit,
     onAddManualTimeRecordClick: (User) -> Unit,
     onManageBreakTypesClick: () -> Unit,
+    onManageUsersClick: () -> Unit,
     onProfileClick: (User) -> Unit,
     timeRecordViewModel: TimeRecordViewModel = koinViewModel { parametersOf(user.userId) },
     userViewModel: UserViewModel = koinViewModel()
@@ -87,14 +88,16 @@ fun AdminDashboardScreen(
                             )
                             DropdownMenuItem(
                                 text = { Text("Gestionar usuarios") },
-                                onClick = { showMenu = false },
+                                onClick = {
+                                    showMenu = false
+                                    onManageUsersClick()
+                                },
                                 leadingIcon = {
                                     Icon(
                                         imageVector = Icons.Default.People,
                                         contentDescription = null
                                     )
-                                },
-                                enabled = false // BORRAR cuando se implemente
+                                }
                             )
                             HorizontalDivider()
                             DropdownMenuItem(
