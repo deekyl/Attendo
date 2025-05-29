@@ -46,11 +46,11 @@ class AuthRepositoryImplSupabase(
 
     override suspend fun signUp(email: String, password: String): Result<UserInfo> {
         return try {
-            client.auth.signUpWith(Email) {
+            val user = client.auth.signUpWith(Email) {
                 this.email = email
                 this.password = password
             }
-            val user = client.auth.currentUserOrNull()
+
             if (user != null) {
                 Result.success(user)
             } else {

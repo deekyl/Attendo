@@ -131,18 +131,14 @@ class UserManagementViewModel(
             try {
                 _isLoading.value = true
 
-                val temporaryPassword = generateTemporaryPassword()
-
                 Log.d("Attendo", "Iniciando creación de usuario con email: $email")
 
-                // 1. Primero crear el usuario en Supabase Auth
-                val authResult = authRepository.signUp(email, temporaryPassword)
+                val authResult = authRepository.signUp(email, "123456")
 
                 authResult.fold(
                     onSuccess = { userInfo ->
                         Log.d("Attendo", "Usuario creado en Auth con ID: ${userInfo.id}")
 
-                        // 2. Crear el registro del usuario en nuestra tabla con el ID de Auth
                         val newUser = User(
                             userId = userInfo.id,
                             fullName = fullName,
@@ -155,9 +151,9 @@ class UserManagementViewModel(
                             createdAt = java.time.LocalDateTime.now().toString()
                         )
 
-                        val userCreated = userDao.updateUser(newUser)
-                        if (userCreated) {
-                           // Log.d("Attendo", "Usuario creado en la base de datos: ${userCreated.userId}")
+                        val userCreated = userDao.createUser(newUser)
+                        if (userCreated != null) {
+                            Log.d("Attendo", "Usuario creado en la base de datos: ${userCreated.userId}")
                             loadUsers()
                             _operationResult.value = OperationResult.Success(
                                 "Usuario creado correctamente. Se ha enviado un email de verificación a $email"

@@ -63,7 +63,7 @@ fun ChangePasswordDialog(
         confirmPasswordError = when {
             confirmPassword.isBlank() -> {
                 isValid = false
-                "Confirma tu nueva contraseña"
+                "Confirma tu contraseña"
             }
             confirmPassword != newPassword -> {
                 isValid = false
@@ -88,7 +88,6 @@ fun ChangePasswordDialog(
                     .fillMaxWidth()
                     .padding(24.dp)
             ) {
-                // Título
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(bottom = 24.dp)
@@ -107,7 +106,6 @@ fun ChangePasswordDialog(
                     )
                 }
 
-                // Contraseña actual
                 OutlinedTextField(
                     value = currentPassword,
                     onValueChange = {
@@ -146,7 +144,6 @@ fun ChangePasswordDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Nueva contraseña
                 OutlinedTextField(
                     value = newPassword,
                     onValueChange = {
@@ -185,14 +182,13 @@ fun ChangePasswordDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Confirmar nueva contraseña
                 OutlinedTextField(
                     value = confirmPassword,
                     onValueChange = {
                         confirmPassword = it
                         if (confirmPasswordError != null) confirmPasswordError = null
                     },
-                    label = { Text("Confirmar nueva contraseña") },
+                    label = { Text("Confirmar") },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Lock,
@@ -224,7 +220,7 @@ fun ChangePasswordDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Información de seguridad
+
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -246,7 +242,7 @@ fun ChangePasswordDialog(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "La contraseña debe tener al menos 6 caracteres. Se recomienda usar una combinación de letras, números y símbolos.",
+                            text = "La contraseña debe tener al menos 6 caracteres.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -255,7 +251,6 @@ fun ChangePasswordDialog(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Botones
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -290,11 +285,6 @@ fun ChangePasswordDialog(
                             Row(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Cambiar")
                             }
