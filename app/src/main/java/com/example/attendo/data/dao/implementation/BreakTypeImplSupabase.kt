@@ -90,6 +90,12 @@ class BreakTypeImplSupabase(
 
     override suspend fun updateBreakType(breakType: BreakType): BreakType? {
         return try {
+
+            if (breakType.breakId == null) {
+                Log.e("Attendo", "No se puede actualizar un tipo de pausa sin ID")
+                return null
+            }
+
             val result = client.postgrest
                 .from("break_types")
                 .update({
@@ -98,7 +104,8 @@ class BreakTypeImplSupabase(
                     set("is_active", breakType.isActive)
                 }) {
                     filter {
-                        eq("break_id", breakType.breakId)
+                        eq("break_id",
+                            breakType.breakId)
                     }
                     select()
                 }
@@ -112,7 +119,7 @@ class BreakTypeImplSupabase(
         }
     }
 
-    override suspend fun toggleBreakTypeStatus(breakId: Int, isActive: Boolean): Boolean {
+    override suspend fun toggleBreakTypeStatus(breakId: Int?, isActive: Boolean): Boolean {
         return try {
             client.postgrest
                 .from("break_types")
@@ -120,7 +127,7 @@ class BreakTypeImplSupabase(
                     set("is_active", isActive)
                 }) {
                     filter {
-                        eq("break_id", breakId)
+                        eq("break_id", breakId!!)
                     }
                 }
 

@@ -147,7 +147,7 @@ private fun CheckedInContent(
                     DropdownMenuItem(
                         text = { Text(breakType.description) },
                         onClick = {
-                            onStartBreak(breakType.breakId)
+                            onStartBreak(breakType.breakId!!)
                             expanded = false
                         }
                     )

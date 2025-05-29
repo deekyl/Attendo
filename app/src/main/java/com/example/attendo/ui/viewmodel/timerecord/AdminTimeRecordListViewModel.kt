@@ -223,7 +223,7 @@ class AdminTimeRecordListViewModel(
                 Log.d("Attendo", "Cargando tipos de pausa...")
                 val breakTypes = breakTypeDao.getAllActiveBreakTypes()
 
-                _breakTypesMap.value = breakTypes.associateBy { it.breakId }
+                _breakTypesMap.value = breakTypes.associateBy { it.breakId!! }
 
                 Log.d("Attendo", "Tipos de pausa cargados: ${breakTypes.size}")
                 breakTypes.forEach {

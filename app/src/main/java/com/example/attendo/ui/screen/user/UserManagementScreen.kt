@@ -44,6 +44,7 @@ fun UserManagementScreen(
     val allUsers by viewModel.allUsers.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val operationResult by viewModel.operationResult.collectAsState()
+    val userProfileImages by viewModel.userProfileImages.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     var showSuccessMessage by remember { mutableStateOf(false) }
@@ -128,7 +129,8 @@ fun UserManagementScreen(
                                     viewModel.toggleUserStatus(user.userId, isActive)
                                 }
                             },
-                            onDeleteUser = { showDeleteDialog = user }
+                            onDeleteUser = { showDeleteDialog = user },
+                            profileImageUrl = userProfileImages[user.userId]
                         )
                     }
                 }
@@ -261,7 +263,8 @@ fun UserManagementCard(
     user: User,
     onUserClick: () -> Unit,
     onToggleStatus: (Boolean) -> Unit,
-    onDeleteUser: () -> Unit
+    onDeleteUser: () -> Unit,
+    profileImageUrl: String? = null
 ) {
     Card(
         modifier = Modifier
@@ -301,7 +304,7 @@ fun UserManagementCard(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                if (user.profileImage.isNotEmpty()) {
+                if (profileImageUrl != null) {
                     AsyncImage(
                         model = user.profileImage,
                         contentDescription = "Avatar de ${user.fullName}",

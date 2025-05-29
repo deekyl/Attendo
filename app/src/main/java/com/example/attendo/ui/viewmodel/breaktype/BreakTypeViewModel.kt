@@ -47,9 +47,7 @@ class BreakTypeViewModel(
             try {
                 _isLoading.value = true
 
-                // Creamos un nuevo objeto BreakType con valores por defecto
                 val newBreakType = BreakType(
-                    breakId = 0, // El ID será generado por la base de datos
                     description = description,
                     computesAs = computesAs,
                     isActive = true
@@ -94,7 +92,7 @@ class BreakTypeViewModel(
         }
     }
 
-    fun toggleBreakTypeStatus(breakId: Int, isActive: Boolean) {
+    fun toggleBreakTypeStatus(breakId: Int?, isActive: Boolean) {
         viewModelScope.launch {
             try {
                 _isLoading.value = true

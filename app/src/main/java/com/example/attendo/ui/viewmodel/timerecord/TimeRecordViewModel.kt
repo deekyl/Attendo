@@ -52,12 +52,22 @@ class TimeRecordViewModel(
             _timeRecordState.value = TimeRecordState.Loading
 
             try {
-                val lastRecord = timeRecordDao.getLastTimeRecord(userId)
+                val today = LocalDate.now().format(DateTimeFormatter.ISO_DATE)
+                val todayRecords = timeRecordDao.getTimeRecordsByDay(userId, today)
+               // val lastRecord = timeRecordDao.getLastTimeRecord(userId)
+
+                // Si no hay registros hoy, el usuario no está trabajando
+                if (todayRecords.isEmpty()) {
+                    _timeRecordState.value = TimeRecordState.CheckedOut
+                    return@launch
+                }
+
+                val lastTodayRecord = todayRecords.maxByOrNull { it.time }
 
                 _timeRecordState.value = when {
-                    lastRecord == null -> TimeRecordState.CheckedOut
-                    lastRecord.isEntry -> TimeRecordState.CheckedIn
-                    lastRecord.breakTypeId != null -> TimeRecordState.OnBreak(lastRecord.breakTypeId)
+                    lastTodayRecord == null -> TimeRecordState.CheckedOut
+                    lastTodayRecord.isEntry -> TimeRecordState.CheckedIn
+                    lastTodayRecord.breakTypeId != null -> TimeRecordState.OnBreak(lastTodayRecord.breakTypeId)
                     else -> TimeRecordState.CheckedOut
                 }
             } catch (e: Exception) {
@@ -133,8 +143,11 @@ class TimeRecordViewModel(
 
     suspend fun endBreak() {
         try {
-            val lastRecord = timeRecordDao.getLastTimeRecord(userId)
-            val breakTypeId = lastRecord?.breakTypeId
+            val today = LocalDate.now().format(DateTimeFormatter.ISO_DATE)
+            val todayRecords = timeRecordDao.getTimeRecordsByDay(userId, today)
+            val lastTodayRecord = todayRecords.maxByOrNull { it.time }
+
+            val breakTypeId = lastTodayRecord?.breakTypeId
             createTimeRecordWithLocation(isEntry = true, breakTypeId = breakTypeId)
         } catch  (e: Exception) {
             _timeRecordState.value = TimeRecordState.Error(e.message ?: "Error al registrar fichaje")
@@ -194,6 +207,12 @@ class TimeRecordViewModel(
                 _timeRecordState.value = TimeRecordState.Error(e.message ?: "Error al registrar fichaje")
             }
         }
+    }
+
+    fun refreshData() {
+        loadCurrentStatus()
+        loadTodayRecords()
+        loadBreakTypes()
     }
 
     fun clearLocationError() {

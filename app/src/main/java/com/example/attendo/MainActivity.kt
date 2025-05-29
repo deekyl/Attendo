@@ -35,10 +35,12 @@ import com.example.attendo.ui.screen.user.CreateUserScreen
 import com.example.attendo.ui.screen.user.EditUserScreen
 import com.example.attendo.ui.screen.user.UserManagementScreen
 import com.example.attendo.ui.viewmodel.auth.login.LoginViewModel
+import com.example.attendo.ui.viewmodel.timerecord.TimeRecordViewModel
 import com.example.attendo.ui.viewmodel.user.UserManagementViewModel
 import com.example.attendo.ui.viewmodel.user.UserViewModel
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -124,6 +126,14 @@ fun AuthNavigation() {
                     }
 
                     is UserState.Regular -> {
+                        val timeRecordViewModel = koinViewModel<TimeRecordViewModel> {
+                            parametersOf((userState as UserState.Regular).user.userId)
+                        }
+
+                        LaunchedEffect(navController.currentBackStackEntry) {
+                            timeRecordViewModel.refreshData()
+                        }
+
                         UserDashboardScreen(
                             user = (userState as UserState.Regular).user,
                             onLogout = {
@@ -146,6 +156,14 @@ fun AuthNavigation() {
                     }
 
                     is UserState.Admin -> {
+                        val timeRecordViewModel = koinViewModel<TimeRecordViewModel> {
+                            parametersOf((userState as UserState.Admin).user.userId)
+                        }
+
+                        LaunchedEffect(navController.currentBackStackEntry) {
+                            timeRecordViewModel.refreshData()
+                        }
+
                         AdminDashboardScreen(
                             user = (userState as UserState.Admin).user,
                             onLogout = {
@@ -414,6 +432,12 @@ fun AuthNavigation() {
             composable("userManagement") {
                 val userViewModel = koinViewModel<UserViewModel>()
                 val userState by userViewModel.userState.collectAsState()
+                val userManagementViewModel = koinViewModel<UserManagementViewModel>()
+
+                LaunchedEffect(navController.currentBackStackEntry) {
+                    userManagementViewModel.refreshUsers()
+                }
+
 
                 when (userState) {
                     is UserState.Admin -> {

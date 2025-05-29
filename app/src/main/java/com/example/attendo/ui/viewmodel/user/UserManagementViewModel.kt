@@ -35,7 +35,14 @@ class UserManagementViewModel(
     private val _isUploadingImage = MutableStateFlow(false)
     val isUploadingImage: StateFlow<Boolean> = _isUploadingImage.asStateFlow()
 
+    private val _userProfileImages = MutableStateFlow<Map<String, String>>(emptyMap())
+    val userProfileImages: StateFlow<Map<String, String>> = _userProfileImages.asStateFlow()
+
     init {
+        loadUsers()
+    }
+
+    fun refreshUsers(){
         loadUsers()
     }
 
@@ -45,6 +52,9 @@ class UserManagementViewModel(
                 _isLoading.value = true
                 val users = userDao.getAllUsersIncludingInactive()
                 _allUsers.value = users
+
+                loadAllProfileImages(users)
+
                 Log.d("Attendo", "Usuarios cargados: ${users.size}")
             } catch (e: Exception) {
                 Log.e("Attendo", "Error cargando usuarios: ${e.message}", e)
@@ -53,6 +63,33 @@ class UserManagementViewModel(
                 _isLoading.value = false
             }
         }
+    }
+
+    private fun loadAllProfileImages(users: List<User>) {
+        viewModelScope.launch {
+            try {
+                val imageMap = mutableMapOf<String, String>()
+                users.forEach { user ->
+                    try {
+                        val imageUrl = profileImageDao.getProfileImageUrl(user.userId)
+                        if (imageUrl != null) {
+                            imageMap[user.userId] = imageUrl
+                        }
+                    } catch (e: Exception) {
+                        Log.e("Attendo", "Error cargando imagen para usuario ${user.userId}: ${e.message}")
+                    }
+                }
+
+                _userProfileImages.value = imageMap
+                Log.d("Attendo", "Imágenes de perfil cargadas: ${imageMap.size}")
+            } catch (e: Exception) {
+                Log.e("Attendo", "Error general cargando imágenes: ${e.message}", e)
+            }
+        }
+    }
+
+    fun getProfileImageUrl(userId: String): String? {
+        return _userProfileImages.value[userId]
     }
 
     fun selectUser(user: User) {
@@ -192,6 +229,11 @@ class UserManagementViewModel(
                 val url = profileImageDao.uploadProfileImage(userId, imageBytes)
                 if (url != null) {
                     _profileImageUrl.value = url
+
+                    val currentImages = _userProfileImages.value.toMutableMap()
+                    currentImages[userId] = url
+                    _userProfileImages.value = currentImages
+
                     Log.d("Attendo", "Imagen de perfil actualizada: $url")
                     _operationResult.value = OperationResult.Success("Imagen actualizada correctamente")
                 } else {

@@ -8,5 +8,5 @@ interface BreakTypeDao {
     suspend fun getBreakTypeById(breakId: Int): BreakType?
     suspend fun insertBreakType(breakType: BreakType): BreakType?
     suspend fun updateBreakType(breakType: BreakType): BreakType?
-    suspend fun toggleBreakTypeStatus(breakId: Int, isActive: Boolean): Boolean
+    suspend fun toggleBreakTypeStatus(breakId: Int?, isActive: Boolean): Boolean
 }
