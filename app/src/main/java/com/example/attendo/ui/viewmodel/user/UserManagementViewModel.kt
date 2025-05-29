@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.attendo.data.dao.interfaces.ProfileImageDao
 import com.example.attendo.data.dao.interfaces.UserDao
 import com.example.attendo.data.model.user.User
+import com.example.attendo.data.repositories.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +15,8 @@ import java.util.UUID
 
 class UserManagementViewModel(
     private val userDao: UserDao,
-    private val profileImageDao: ProfileImageDao
+    private val profileImageDao: ProfileImageDao,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _allUsers = MutableStateFlow<List<User>>(emptyList())
@@ -129,34 +131,88 @@ class UserManagementViewModel(
             try {
                 _isLoading.value = true
 
-                val userId = UUID.randomUUID().toString()
+                val temporaryPassword = generateTemporaryPassword()
 
-                val newUser = User(
-                    userId = userId,
-                    fullName = fullName,
-                    email = email,
-                    documentId = documentId,
-                    address = address,
-                    isAdmin = isAdmin,
-                    isActive = true,
-                    profileImage = "",
-                    createdAt = java.time.LocalDateTime.now().toString()
+                Log.d("Attendo", "Iniciando creación de usuario con email: $email")
+
+                // 1. Primero crear el usuario en Supabase Auth
+                val authResult = authRepository.signUp(email, temporaryPassword)
+
+                authResult.fold(
+                    onSuccess = { userInfo ->
+                        Log.d("Attendo", "Usuario creado en Auth con ID: ${userInfo.id}")
+
+                        // 2. Crear el registro del usuario en nuestra tabla con el ID de Auth
+                        val newUser = User(
+                            userId = userInfo.id,
+                            fullName = fullName,
+                            email = email,
+                            documentId = documentId,
+                            address = address,
+                            isAdmin = isAdmin,
+                            isActive = true,
+                            profileImage = "",
+                            createdAt = java.time.LocalDateTime.now().toString()
+                        )
+
+                        val userCreated = userDao.updateUser(newUser)
+                        if (userCreated) {
+                           // Log.d("Attendo", "Usuario creado en la base de datos: ${userCreated.userId}")
+                            loadUsers()
+                            _operationResult.value = OperationResult.Success(
+                                "Usuario creado correctamente. Se ha enviado un email de verificación a $email"
+                            )
+                        } else {
+                            Log.e("Attendo", "Error creando usuario en BD, el usuario ya existe en Auth")
+                            _operationResult.value = OperationResult.Error(
+                                "Error al crear el usuario en la base de datos"
+                            )
+                        }
+                    },
+                    onFailure = { exception ->
+                        Log.e("Attendo", "Error creando usuario en Auth: ${exception.message}", exception)
+
+                        val errorMessage = when {
+                            exception.message?.contains("email_address_not_authorized") == true ->
+                                "El email no está autorizado. Contacta con el administrador."
+
+                            exception.message?.contains("signup_disabled") == true ->
+                                "El registro está deshabilitado temporalmente."
+
+                            exception.message?.contains("email_already_exists") == true ||
+                                    exception.message?.contains("user_already_exists") == true ->
+                                "Ya existe un usuario con este email."
+
+                            exception.message?.contains("invalid_email") == true ->
+                                "El formato del email no es válido."
+
+                            exception.message?.contains("weak_password") == true ->
+                                "La contraseña es demasiado débil."
+
+                            exception.message?.contains("network") == true ||
+                                    exception.message?.contains("connection") == true ->
+                                "Error de conexión. Verifica tu conexión a internet."
+
+                            else -> "Error al crear el usuario: ${exception.message}"
+                        }
+
+                        _operationResult.value = OperationResult.Error(errorMessage)
+                    }
                 )
-
-                val result = userDao.createUser(newUser)
-                if (result != null) {
-                    loadUsers() // Recargar lista
-                    _operationResult.value = OperationResult.Success("Usuario creado correctamente")
-                } else {
-                    _operationResult.value = OperationResult.Error("Error al crear el usuario")
-                }
             } catch (e: Exception) {
-                Log.e("Attendo", "Error creando usuario: ${e.message}", e)
-                _operationResult.value = OperationResult.Error("Error: ${e.message}")
+                Log.e("Attendo", "Error general creando usuario: ${e.message}", e)
+                _operationResult.value = OperationResult.Error("Error inesperado: ${e.message}")
             } finally {
                 _isLoading.value = false
             }
         }
+    }
+
+    private fun generateTemporaryPassword(): String {
+        val chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
+        return (1..12)
+            .map { chars.random() }
+            .joinToString("")
     }
 
     fun toggleUserStatus(userId: String, isActive: Boolean) {

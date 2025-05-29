@@ -14,18 +14,24 @@ import kotlinx.coroutines.launch
 
 class UserViewModel(
     private val authRepository: AuthRepository,
-    private val profileImageDao: ProfileImageDao // Añadir el DAO
+    private val profileImageDao: ProfileImageDao
 ) : ViewModel() {
 
     private val _userState = MutableStateFlow<UserState>(UserState.Loading)
     val userState: StateFlow<UserState> = _userState.asStateFlow()
 
-    // Añadir StateFlow para la imagen de perfil
     private val _profileImageUrl = MutableStateFlow<String?>(null)
     val profileImageUrl: StateFlow<String?> = _profileImageUrl.asStateFlow()
 
     init {
         loadUserDetails()
+    }
+
+    fun refreshUserData() {
+        viewModelScope.launch {
+            _userState.value = UserState.Loading
+            loadUserDetails()
+        }
     }
 
     private fun loadUserDetails() {
@@ -52,7 +58,6 @@ class UserViewModel(
         }
     }
 
-    // Función para cargar la imagen de perfil
     fun loadProfileImage(userId: String) {
         viewModelScope.launch {
             try {
@@ -66,7 +71,6 @@ class UserViewModel(
         }
     }
 
-    // Función para subir una nueva imagen de perfil
     fun uploadProfileImage(userId: String, imageBytes: ByteArray) {
         viewModelScope.launch {
             try {

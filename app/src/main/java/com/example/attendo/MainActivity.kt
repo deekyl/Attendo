@@ -115,6 +115,10 @@ fun AuthNavigation() {
                 val userViewModel = koinViewModel<UserViewModel>()
                 val userState by userViewModel.userState.collectAsState()
 
+                LaunchedEffect(navController.currentBackStackEntry) {
+                    userViewModel.refreshUserData()
+                }
+
                 when (userState) {
                     is UserState.Loading -> {
                         Box(
@@ -382,6 +386,11 @@ fun AuthNavigation() {
                     backStackEntry.arguments?.getString("userId") ?: return@composable
                 val userViewModel = koinViewModel<UserViewModel>()
                 val userState by userViewModel.userState.collectAsState()
+
+                LaunchedEffect(Unit) {
+                    userViewModel.refreshUserData()
+                }
+
 
                 when (userState) {
                     is UserState.Regular -> {

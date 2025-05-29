@@ -306,7 +306,7 @@ fun UserManagementCard(
             ) {
                 if (profileImageUrl != null) {
                     AsyncImage(
-                        model = user.profileImage,
+                        model = profileImageUrl,
                         contentDescription = "Avatar de ${user.fullName}",
                         modifier = Modifier
                             .fillMaxSize()

@@ -8,6 +8,7 @@ import com.example.attendo.data.dao.interfaces.UserDao
 import com.example.attendo.data.model.user.ProfileEditData
 import com.example.attendo.data.model.user.ProfileEditState
 import com.example.attendo.data.model.user.User
+import com.example.attendo.data.repositories.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,7 +16,8 @@ import kotlinx.coroutines.launch
 
 class ProfileViewModel(
     private val userDao: UserDao,
-    private val profileImageDao: ProfileImageDao
+    private val profileImageDao: ProfileImageDao,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _user = MutableStateFlow<User?>(null)
@@ -30,12 +32,17 @@ class ProfileViewModel(
     private val _isUploadingImage = MutableStateFlow(false)
     val isUploadingImage: StateFlow<Boolean> = _isUploadingImage.asStateFlow()
 
-    // Estados para edición
     private val _editData = MutableStateFlow(ProfileEditData())
     val editData: StateFlow<ProfileEditData> = _editData.asStateFlow()
 
     private val _isEditMode = MutableStateFlow(false)
     val isEditMode: StateFlow<Boolean> = _isEditMode.asStateFlow()
+
+    private val _isChangingPassword = MutableStateFlow(false)
+    val isChangingPassword: StateFlow<Boolean> = _isChangingPassword.asStateFlow()
+
+    private val _passwordChangeResult = MutableStateFlow<PasswordChangeResult?>(null)
+    val passwordChangeResult: StateFlow<PasswordChangeResult?> = _passwordChangeResult.asStateFlow()
 
     fun loadUser(userId: String) {
         viewModelScope.launch {
@@ -46,7 +53,6 @@ class ProfileViewModel(
                 if (userData != null) {
                     _user.value = userData
 
-                    // Cargar datos de edición
                     _editData.value = ProfileEditData(
                         fullName = userData.fullName,
                         email = userData.email,
@@ -54,7 +60,6 @@ class ProfileViewModel(
                         address = userData.address
                     )
 
-                    // Cargar imagen de perfil
                     loadProfileImage(userId)
 
                     _editState.value = ProfileEditState.Idle
@@ -99,6 +104,37 @@ class ProfileViewModel(
                 _editState.value = ProfileEditState.Error("Error al subir la imagen: ${e.message}")
             } finally {
                 _isUploadingImage.value = false
+            }
+        }
+    }
+
+    fun changePassword(currentPassword: String, newPassword: String) {
+        viewModelScope.launch {
+            try {
+                _isChangingPassword.value = true
+                _passwordChangeResult.value = null
+
+                Log.d("Attendo", "Iniciando cambio de contraseña")
+
+                val result = authRepository.changePassword(currentPassword, newPassword)
+
+                result.fold(
+                    onSuccess = {
+                        Log.d("Attendo", "Contraseña cambiada correctamente")
+                        _passwordChangeResult.value = PasswordChangeResult.Success("Contraseña cambiada correctamente")
+                    },
+                    onFailure = { exception ->
+                        Log.e("Attendo", "Error cambiando contraseña: ${exception.message}")
+                        _passwordChangeResult.value = PasswordChangeResult.Error(
+                            exception.message ?: "Error al cambiar la contraseña"
+                        )
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e("Attendo", "Error general cambiando contraseña: ${e.message}", e)
+                _passwordChangeResult.value = PasswordChangeResult.Error("Error inesperado: ${e.message}")
+            } finally {
+                _isChangingPassword.value = false
             }
         }
     }
@@ -184,5 +220,15 @@ class ProfileViewModel(
     private fun isValidEmail(email: String): Boolean {
         val emailPattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+"
         return email.matches(emailPattern.toRegex())
+    }
+
+    fun clearPasswordChangeResult() {
+        _passwordChangeResult.value = null
+    }
+
+
+    sealed class PasswordChangeResult {
+        data class Success(val message: String) : PasswordChangeResult()
+        data class Error(val message: String) : PasswordChangeResult()
     }
 }

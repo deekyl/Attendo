@@ -75,8 +75,8 @@ val appModule = module {
 
     viewModel { BreakTypeViewModel(get()) }
 
-    viewModel { ProfileViewModel(get(), get()) }
+    viewModel { ProfileViewModel(get(), get(), get()) }
 
-    viewModel { UserManagementViewModel(get(), get()) }
+    viewModel { UserManagementViewModel(get(), get(), get()) }
 
 }

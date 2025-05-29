@@ -111,4 +111,48 @@ class AuthRepositoryImplSupabase(
         }
     }
 
+    override suspend fun changePassword(
+        currentPassword: String,
+        newPassword: String
+    ): Result<Unit> {
+        return try {
+            Log.d("attendo", "Cambiando contraseña de usuario")
+
+            val currentUser = client.auth.currentUserOrNull()
+            if (currentUser == null) {
+                return Result.failure(Exception("No hay usuario autenticado"))
+            }
+            val loginResult = login(currentUser.email ?: "", currentPassword)
+            loginResult.fold(
+                onSuccess = {
+                    try {
+                        client.auth.updateUser {
+                            password = newPassword
+                        }
+                        Log.d("attendo", "Contraseña cambiada correctamente")
+                        Result.success(Unit)
+                    } catch (e: Exception) {
+                        Log.e("attendo", "Error actualizando contraseña: ${e.message}", e)
+                        Result.failure(Exception("Error al actualizar la contraseña: ${e.message}"))
+                    }
+                },
+                onFailure = { exception ->
+                    Log.e("attendo", "Contraseña actual incorrecta: ${exception.message}")
+                    Result.failure(Exception("La contraseña actual es incorrecta"))
+                }
+            )
+        } catch (e: Exception) {
+            Log.e("attendo", "Error general cambiando contraseña: ${e.message}", e)
+            val errorMessage = when {
+                e.message?.contains("password") == true ->
+                    "La nueva contraseña no cumple con los requisitos mínimos"
+                e.message?.contains("network") == true ||
+                        e.message?.contains("connection") == true ->
+                    "Error de conexión. Verifica tu conexión a internet."
+                else -> "Error al cambiar la contraseña: ${e.message}"
+            }
+
+            Result.failure(Exception(errorMessage))
+        }
+    }
 }

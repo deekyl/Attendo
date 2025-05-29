@@ -34,6 +34,7 @@ import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.attendo.data.model.user.ProfileEditState
 import com.example.attendo.data.model.user.User
+import com.example.attendo.ui.components.ChangePasswordDialog
 import com.example.attendo.ui.theme.PurplePrimary
 import com.example.attendo.ui.viewmodel.user.ProfileViewModel
 import kotlinx.coroutines.delay
@@ -57,10 +58,14 @@ fun ProfileScreen(
     val isUploadingImage by viewModel.isUploadingImage.collectAsState()
     val editData by viewModel.editData.collectAsState()
     val isEditMode by viewModel.isEditMode.collectAsState()
+    val isChangingPassword by viewModel.isChangingPassword.collectAsState()
+    val passwordChangeResult by viewModel.passwordChangeResult.collectAsState()
 
     var showImagePickerDialog by remember { mutableStateOf(false) }
     var showSuccessMessage by remember { mutableStateOf(false) }
     var validationError by remember { mutableStateOf<String?>(null) }
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
+    var showPasswordChangeSuccess by remember { mutableStateOf(false) }
 
     // Launcher para seleccionar imagen
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -102,6 +107,26 @@ fun ProfileScreen(
                 viewModel.clearState()
             }
             else -> {}
+        }
+    }
+
+    // Manejar resultado del cambio de contraseña
+    LaunchedEffect(passwordChangeResult) {
+        passwordChangeResult?.let { result ->
+            when (result) {
+                is ProfileViewModel.PasswordChangeResult.Success -> {
+                    showChangePasswordDialog = false
+                    showPasswordChangeSuccess = true
+                    delay(3000)
+                    showPasswordChangeSuccess = false
+                    viewModel.clearPasswordChangeResult()
+                }
+                is ProfileViewModel.PasswordChangeResult.Error -> {
+                    // El error se maneja dentro del diálogo
+                    delay(5000)
+                    viewModel.clearPasswordChangeResult()
+                }
+            }
         }
     }
 
@@ -189,12 +214,16 @@ fun ProfileScreen(
                     onCancel = {
                         viewModel.cancelEdit()
                         validationError = null
+                    },
+                    onChangePasswordClick = {
+                        showChangePasswordDialog = true
                     }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
+            // Notificaciones
             AnimatedVisibility(
                 visible = showSuccessMessage,
                 enter = fadeIn(animationSpec = tween(300)),
@@ -204,6 +233,17 @@ fun ProfileScreen(
                     .padding(top = 16.dp)
             ) {
                 SuccessNotification()
+            }
+
+            AnimatedVisibility(
+                visible = showPasswordChangeSuccess,
+                enter = fadeIn(animationSpec = tween(300)),
+                exit = fadeOut(animationSpec = tween(300)),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 16.dp)
+            ) {
+                PasswordChangeSuccessNotification()
             }
 
             AnimatedVisibility(
@@ -218,9 +258,23 @@ fun ProfileScreen(
                     message = (editState as? ProfileEditState.Error)?.message ?: ""
                 )
             }
+
+            AnimatedVisibility(
+                visible = passwordChangeResult is ProfileViewModel.PasswordChangeResult.Error,
+                enter = fadeIn(animationSpec = tween(300)),
+                exit = fadeOut(animationSpec = tween(300)),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 16.dp)
+            ) {
+                ErrorNotification(
+                    message = (passwordChangeResult as? ProfileViewModel.PasswordChangeResult.Error)?.message ?: ""
+                )
+            }
         }
     }
 
+    // Diálogos
     if (showImagePickerDialog) {
         ImagePickerDialog(
             onDismiss = { showImagePickerDialog = false },
@@ -230,103 +284,17 @@ fun ProfileScreen(
             }
         )
     }
-}
 
-@Composable
-fun ProfileImageSection(
-    profileImageUrl: String?,
-    userName: String,
-    isUploading: Boolean,
-    onImageClick: () -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier.size(120.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                    .border(
-                        width = 3.dp,
-                        color = PurplePrimary,
-                        shape = CircleShape
-                    )
-                    .clickable { onImageClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                if (profileImageUrl != null) {
-                    AsyncImage(
-                        model = profileImageUrl,
-                        contentDescription = "Foto de perfil",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Perfil",
-                        tint = PurplePrimary,
-                        modifier = Modifier.size(60.dp)
-                    )
-                }
-            }
-            if (isUploading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Color.Black.copy(alpha = 0.5f),
-                            CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        strokeWidth = 3.dp,
-                        modifier = Modifier.size(40.dp)
-                    )
-                }
-            }
-
-            if (!isUploading) {
-                Icon(
-                    imageVector = Icons.Default.CameraAlt,
-                    contentDescription = "Cambiar foto",
-                    tint = Color.White,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .offset(x = (-8).dp, y = (-8).dp)
-                        .size(32.dp)
-                        .background(
-                            PurplePrimary,
-                            CircleShape
-                        )
-                        .padding(6.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = userName,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
-
-        Text(
-            text = "Toca la imagen para cambiarla",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
+    if (showChangePasswordDialog) {
+        ChangePasswordDialog(
+            onDismiss = {
+                showChangePasswordDialog = false
+                viewModel.clearPasswordChangeResult()
+            },
+            onChangePassword = { currentPassword, newPassword ->
+                viewModel.changePassword(currentPassword, newPassword)
+            },
+            isLoading = isChangingPassword
         )
     }
 }
@@ -340,7 +308,8 @@ fun ProfileDataCard(
     validationError: String?,
     onEditDataChanged: (com.example.attendo.data.model.user.ProfileEditData) -> Unit,
     onSave: () -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    onChangePasswordClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -485,6 +454,98 @@ fun ProfileDataCard(
                 valueColor = if (user.isActive) Color(0xFF4CAF50) else Color(0xFFF44336)
             )
 
+            Spacer(modifier = Modifier.height(24.dp))
+
+            HorizontalDivider()
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Sección de seguridad
+            Text(
+                text = "Seguridad",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Botón para cambiar contraseña
+            OutlinedCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        if (!isEditMode) {
+                            onChangePasswordClick()
+                        }
+                    },
+                colors = CardDefaults.outlinedCardColors(
+                    containerColor = if (isEditMode)
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    else
+                        MaterialTheme.colorScheme.surface
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isEditMode)
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                else
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = if (isEditMode)
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            else
+                                MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Cambiar contraseña",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = if (isEditMode)
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            else
+                                MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Actualiza tu contraseña de acceso",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isEditMode)
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    if (!isEditMode) {
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             if (isEditMode) {
                 Spacer(modifier = Modifier.height(32.dp))
 
@@ -521,6 +582,105 @@ fun ProfileDataCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ProfileImageSection(
+    profileImageUrl: String?,
+    userName: String,
+    isUploading: Boolean,
+    onImageClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier.size(120.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                    .border(
+                        width = 3.dp,
+                        color = PurplePrimary,
+                        shape = CircleShape
+                    )
+                    .clickable { onImageClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                if (profileImageUrl != null) {
+                    AsyncImage(
+                        model = profileImageUrl,
+                        contentDescription = "Foto de perfil",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Perfil",
+                        tint = PurplePrimary,
+                        modifier = Modifier.size(60.dp)
+                    )
+                }
+            }
+            if (isUploading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Color.Black.copy(alpha = 0.5f),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+            }
+
+            if (!isUploading) {
+                Icon(
+                    imageVector = Icons.Default.CameraAlt,
+                    contentDescription = "Cambiar foto",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(x = (-8).dp, y = (-8).dp)
+                        .size(32.dp)
+                        .background(
+                            PurplePrimary,
+                            CircleShape
+                        )
+                        .padding(6.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = userName,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+
+        Text(
+            text = "Toca la imagen para cambiarla",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -752,6 +912,49 @@ fun SuccessNotification() {
 }
 
 @Composable
+fun PasswordChangeSuccessNotification() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth(0.9f),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF4CAF50)
+        ),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 6.dp
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "¡Contraseña cambiada!",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Tu contraseña se ha actualizado correctamente",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun ErrorNotification(message: String) {
     Card(
         modifier = Modifier
@@ -790,22 +993,6 @@ fun ErrorNotification(message: String) {
                     color = Color.White.copy(alpha = 0.9f)
                 )
             }
-        }
-    }
-}
-
-private fun formatDate(dateString: String): String {
-    return try {
-        val formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
-        val dateTime = java.time.LocalDateTime.parse(dateString, java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-        dateTime.format(formatter)
-    } catch (_: Exception) {
-        try {
-            val dateTime = java.time.LocalDateTime.parse(dateString, java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-            val formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
-            dateTime.format(formatter)
-        } catch (_: Exception) {
-            dateString
         }
     }
 }

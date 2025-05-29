@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -19,7 +20,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.example.attendo.ui.theme.PurplePrimary
 import com.example.attendo.ui.viewmodel.user.UserManagementViewModel
 import kotlinx.coroutines.delay
@@ -51,6 +54,8 @@ fun CreateUserScreen(
     var addressError by remember { mutableStateOf<String?>(null) }
 
     var showSuccess by remember { mutableStateOf(false) }
+    var showPasswordDialog by remember { mutableStateOf(false) }
+    var temporaryPassword by remember { mutableStateOf("") }
 
     fun validateForm(): Boolean {
         var isValid = true
@@ -110,9 +115,16 @@ fun CreateUserScreen(
         operationResult?.let {
             when (it) {
                 is UserManagementViewModel.OperationResult.Success -> {
-                    showSuccess = true
-                    delay(2000)
-                    onUserCreated()
+                    val message = it.message
+                    if (message.contains("Contraseña temporal:")) {
+                        val password = message.substringAfter("Contraseña temporal: ")
+                        temporaryPassword = password
+                        showPasswordDialog = true
+                    } else {
+                        showSuccess = true
+                        delay(2000)
+                        onUserCreated()
+                    }
                 }
                 is UserManagementViewModel.OperationResult.Error -> {
                     delay(5000)
@@ -129,7 +141,7 @@ fun CreateUserScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver atrás"
                         )
                     }
@@ -146,7 +158,6 @@ fun CreateUserScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Fondo con gradiente
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -167,7 +178,6 @@ fun CreateUserScreen(
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Título
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -190,7 +200,6 @@ fun CreateUserScreen(
                     )
                 }
 
-                // Formulario
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -211,7 +220,6 @@ fun CreateUserScreen(
                             modifier = Modifier.padding(bottom = 24.dp)
                         )
 
-                        // Nombre completo
                         OutlinedTextField(
                             value = fullName,
                             onValueChange = {
@@ -240,7 +248,6 @@ fun CreateUserScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Email
                         OutlinedTextField(
                             value = email,
                             onValueChange = {
@@ -269,7 +276,6 @@ fun CreateUserScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Documento
                         OutlinedTextField(
                             value = documentId,
                             onValueChange = {
@@ -298,7 +304,6 @@ fun CreateUserScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Dirección
                         OutlinedTextField(
                             value = address,
                             onValueChange = {
@@ -474,7 +479,6 @@ fun CreateUserScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Notificación de éxito
             AnimatedVisibility(
                 visible = showSuccess,
                 enter = fadeIn(animationSpec = tween(300)),
@@ -524,7 +528,6 @@ fun CreateUserScreen(
                 }
             }
 
-            // Notificación de error
             AnimatedVisibility(
                 visible = operationResult is UserManagementViewModel.OperationResult.Error,
                 enter = fadeIn(animationSpec = tween(300)),
@@ -570,6 +573,107 @@ fun CreateUserScreen(
                                 color = Color.White.copy(alpha = 0.9f)
                             )
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun TemporaryPasswordDialog(
+        password: String,
+        onDismiss: () -> Unit,
+        onCopyPassword: () -> Unit
+    ) {
+        Dialog(onDismissRequest = onDismiss) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Key,
+                        contentDescription = null,
+                        tint = Color(0xFF4CAF50),
+                        modifier = Modifier.size(48.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Usuario creado exitosamente",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Se ha generado una contraseña temporal para el usuario:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = password,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.weight(1f),
+                                textAlign = TextAlign.Center
+                            )
+                            IconButton(onClick = onCopyPassword) {
+                                Icon(
+                                    imageVector = Icons.Default.ContentCopy,
+                                    contentDescription = "Copiar contraseña"
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "⚠️ Importante: Comparte esta contraseña de forma segura con el usuario. Recomendamos que la cambie en su primer inicio de sesión.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFFF9800),
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF4CAF50)
+                        )
+                    ) {
+                        Text("Entendido")
                     }
                 }
             }
